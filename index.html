@@ -2,101 +2,99 @@
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-  <meta name="theme-color" content="#f7f5f0">
-  <title>今日运势 · 八字</title>
-  <link rel="stylesheet" href="css/style.css">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1">
+  <meta name="theme-color" content="#f9faf8">
+  <title>今日份黄历</title>
+  <link rel="stylesheet" href="css/style.css?v=14">
 </head>
 <body>
   <div class="app">
-    <header class="header">
-      <h1>今日运势</h1>
-      <p class="subtitle">输入生辰八字，查看今日提醒</p>
-    </header>
-
-    <main>
-      <section class="card" id="form-section">
-        <form id="birth-form" autocomplete="off" novalidate>
-          <div class="field-row">
-            <label for="birth-year">出生年</label>
-            <input type="number" id="birth-year" min="1920" max="2030" required placeholder="1990">
-          </div>
-          <div class="field-row">
-            <label for="birth-month">月</label>
-            <input type="number" id="birth-month" min="1" max="12" required placeholder="6">
-          </div>
-          <div class="field-row">
-            <label for="birth-day">日</label>
-            <input type="number" id="birth-day" min="1" max="31" required placeholder="15">
-          </div>
-          <div class="field-row">
-            <label for="birth-hour">时辰</label>
-            <select id="birth-hour">
-              <option value="" disabled selected>选择时辰</option>
-            </select>
-          </div>
-          <div class="field-row">
-            <label>性别</label>
-            <div class="gender-group" role="radiogroup" aria-label="性别">
-              <label class="gender-opt"><input type="radio" name="gender" value="male" checked> 男</label>
-              <label class="gender-opt"><input type="radio" name="gender" value="female"> 女</label>
-            </div>
-          </div>
-          <p class="hint">时辰按北京时间，子时含 23:00–00:59</p>
-          <p class="form-error hidden" id="form-error" role="alert"></p>
-          <button type="button" class="btn-primary" id="submit-btn">查看今日运势</button>
-        </form>
+    <main id="home-section" class="home-screen">
+      <section class="home-almanac">
+        <div class="almanac-inner">
+          <h1 class="home-title">今日份黄历</h1>
+          <p class="home-datetime" id="home-datetime"></p>
+          <div class="ganzhi-inline" id="home-ganzhi"></div>
+          <p class="jieqi-note" id="jieqi-note"></p>
+          <div class="huangli-compact" id="huangli-block"></div>
+          <p class="daily-hint" id="daily-hint"></p>
+        </div>
       </section>
 
-      <section class="card hidden" id="result-section">
-        <div class="date-bar">
-          <span id="today-date"></span>
-        </div>
-
-        <div class="bazi-block">
-          <h2>您的八字</h2>
-          <div class="pillars" id="user-pillars"></div>
-          <p class="day-master">日主：<strong id="day-master"></strong></p>
-        </div>
-
-        <div class="bazi-block">
-          <h2>今日干支</h2>
-          <div class="pillars" id="today-pillars"></div>
-        </div>
-
-        <div class="bazi-block">
-          <h2>大运 · 流年</h2>
-          <div class="luck-grid" id="luck-grid"></div>
-          <p class="luck-meta" id="luck-meta"></p>
-        </div>
-
-        <div class="energy-block">
-          <h2>能量影响</h2>
-          <p class="energy-overview" id="energy-overview"></p>
-          <div class="energy-list" id="energy-list"></div>
-        </div>
-
-        <div class="score-block">
-          <div class="score-ring" id="score-ring">
-            <span class="score-num" id="score-num">—</span>
-            <span class="score-label">综合运势</span>
+      <section class="home-birth">
+        <h2 class="birth-heading">输入出生时间</h2>
+        <form id="birth-form" class="birth-inline" autocomplete="off" novalidate>
+          <div class="birth-row">
+            <input type="number" id="birth-year" class="inp-n" min="1920" max="2030" placeholder="1990" aria-label="出生年">
+            <span class="unit">年</span>
+            <input type="number" id="birth-month" class="inp-n inp-s" min="1" max="12" placeholder="6" aria-label="月">
+            <span class="unit">月</span>
+            <input type="number" id="birth-day" class="inp-n inp-s" min="1" max="31" placeholder="15" aria-label="日">
+            <span class="unit">日</span>
+            <select id="birth-hour" class="inp-shi" aria-label="出生时辰"></select>
           </div>
-          <p class="summary" id="summary"></p>
-        </div>
-
-        <div class="fortune-list" id="fortune-list"></div>
-
-        <button type="button" class="btn-secondary" id="edit-btn">修改生辰</button>
+          <div class="birth-row birth-row-gender">
+            <div class="gender-inline" role="radiogroup" aria-label="性别">
+              <label class="g-opt"><input type="radio" name="gender" value="male" checked>男</label>
+              <label class="g-opt"><input type="radio" name="gender" value="female">女</label>
+            </div>
+          </div>
+          <p class="form-error hidden" id="form-error" role="alert"></p>
+          <button type="button" class="btn-muyu" id="submit-btn" aria-label="点击查看今日剧本">
+            <svg class="muyu-icon" viewBox="0 0 48 48" aria-hidden="true">
+              <ellipse cx="24" cy="26" rx="16" ry="11" fill="none" stroke="currentColor" stroke-width="1.2"/>
+              <path d="M12 26 Q24 18 36 26" fill="none" stroke="currentColor" stroke-width="1"/>
+              <line x1="24" y1="15" x2="24" y2="37" stroke="currentColor" stroke-width="0.8" opacity="0.5"/>
+              <circle cx="24" cy="12" r="2" fill="currentColor" opacity="0.35"/>
+            </svg>
+            <span class="muyu-label">点击查看今日剧本</span>
+          </button>
+          <button type="button" class="btn-link hidden" id="quick-btn">查看已保存</button>
+        </form>
+        <footer class="home-footer">
+          <p>AI说说而已，制作人免责。</p>
+        </footer>
       </section>
     </main>
 
-    <footer class="footer">
-      <p>仅供娱乐参考，请理性看待</p>
-    </footer>
+    <section class="hidden" id="result-section">
+      <p class="result-date" id="today-date"></p>
+
+      <div class="card result-panel">
+        <h2 class="panel-title">今日能量</h2>
+        <div class="hp-bars" id="hp-bars"></div>
+        <div class="energy-hints" id="energy-hints"></div>
+      </div>
+
+      <div class="card result-panel">
+        <h2 class="panel-title">八字排盘</h2>
+        <p class="panel-sub">日主：<span id="day-master"></span></p>
+        <div class="paipan-grid" id="paipan-grid"></div>
+        <div class="wuxing-pie" id="wuxing-pie"></div>
+        <p class="personality-summary" id="personality-summary"></p>
+      </div>
+
+      <div class="card result-panel">
+        <h2 class="panel-title">流年大运</h2>
+        <div class="liunian-highlight" id="liunian-highlight"></div>
+        <div class="luck-detail" id="luck-detail"></div>
+        <div class="dayun-scroll" id="dayun-scroll"></div>
+        <p class="luck-meta" id="luck-meta"></p>
+      </div>
+
+      <button type="button" class="btn-secondary result-back" id="edit-btn">返回首页</button>
+
+      <footer class="footer result-footer">
+        <p>AI说说而已，制作人免责。</p>
+      </footer>
+    </section>
   </div>
 
-  <script src="js/bazi.js"></script>
-  <script src="js/fortune.js"></script>
-  <script src="js/app.js"></script>
+  <script src="js/bazi.js?v=14"></script>
+  <script src="js/huangli.js?v=14"></script>
+  <script src="js/paipan.js?v=14"></script>
+  <script src="js/fortune.js?v=14"></script>
+  <script src="js/muyu.js?v=14"></script>
+  <script src="js/app.js?v=14"></script>
 </body>
 </html>

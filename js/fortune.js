@@ -106,7 +106,138 @@
     };
   }
 
+  function buildTodayEnergy(userDay, todayBazi, analysis) {
+    const dmWx = getWuxingGan(userDay.gan);
+    let positive = 42;
+    let negative = 28;
+
+    const dayGanRel = wuxingRelation(dmWx, getWuxingGan(todayBazi.day.gan));
+    const dayZhiRel = wuxingRelation(dmWx, getWuxingZhi(todayBazi.day.zhi));
+
+    const posMap = { 生我: 14, 比和: 10, 我克: 6, 我生: 3, 克我: 0 };
+    const negMap = { 克我: 16, 我生: 8, 比和: 4, 我克: 3, 生我: 0 };
+
+    positive += posMap[dayGanRel] || 0;
+    positive += (posMap[dayZhiRel] || 0) * 0.6;
+    negative += negMap[dayGanRel] || 0;
+    negative += (negMap[dayZhiRel] || 0) * 0.6;
+
+    analysis.layers.forEach((layer) => {
+      if (!layer || !layer.effects) return;
+      positive += (relationScore(layer.ganRel) - 5) * layer.weight * 3;
+      negative += (5 - relationScore(layer.ganRel)) * layer.weight * 2.5;
+      layer.effects.forEach((e) => {
+        if (e.includes('合')) positive += 4 * layer.weight;
+        if (e.includes('冲')) negative += 10 * layer.weight;
+        if (e.includes('刑')) negative += 6 * layer.weight;
+      });
+    });
+
+    if (pairMatch(GAN_WUHE, userDay.gan, todayBazi.day.gan)) positive += 8;
+    if (pairMatch(ZHI_LIUHE, userDay.zhi, todayBazi.day.zhi)) positive += 6;
+    if (pairMatch(ZHI_LIUCHONG, userDay.zhi, todayBazi.day.zhi)) negative += 14;
+    if (isZhiXing(userDay.zhi, todayBazi.day.zhi)) negative += 8;
+
+    positive = Math.max(12, Math.min(95, Math.round(positive)));
+    negative = Math.max(8, Math.min(92, Math.round(negative)));
+
+    const total = positive + negative;
+    const positiveRatio = Math.round((positive / total) * 100);
+    const negativeRatio = 100 - positiveRatio;
+
+    return { positive, negative, positiveRatio, negativeRatio };
+  }
+
+  const WX_HEALTH = {
+    木: '留意肝胆、筋脉与用眼，宜拉伸、少动怒。',
+    火: '留意心火与睡眠，情绪起伏时放慢节奏。',
+    土: '脾胃宜温，忌生冷暴食，午后可七分饱。',
+    金: '呼吸道与皮肤较敏感，注意温差与干燥。',
+    水: '肾水与寒凉，足部保暖，少饮冰饮。',
+  };
+
+  function buildPersonalDailyHint(userBazi, todayBazi, analysis) {
+    const { dmWx, layers, score, dayGanRel } = analysis;
+    const seed = getGanIndex(userBazi.day.gan) * 7 + getZhiIndex(todayBazi.day.zhi) * 13 + score;
+
+    let health = WX_HEALTH[dmWx] || '按常日作息，劳逸结合即可。';
+    if (layers.some((l) => l.ganRel === '克我' || l.zhiRel === '克我')) {
+      health += ' 官杀气显，身体易有隐性消耗，宜减负荷。';
+    }
+    if (layers.some((l) => l.effects.some((e) => e.includes('冲')))) {
+      health += ' 逢冲之日，注意磕碰与情绪性失眠。';
+    }
+    if (layers.some((l) => l.effects.some((e) => e.includes('刑')))) {
+      health += ' 刑动在内，少纠结、早休息。';
+    }
+
+    const caiLayers = layers.filter((l) => l.ganRel === '我克' || l.zhiRel === '我克');
+    let wealth;
+    if (caiLayers.length >= 2) {
+      wealth = '财星叠见，小额进账或副业机会可留心，忌贪快求利。';
+    } else if (caiLayers.length === 1) {
+      wealth = `${caiLayers[0].layerName}财星在位，适合整理账目、跟进回款，大额投资宜缓。`;
+    } else if (dayGanRel === '我克') {
+      wealth = '流日财星透，今日有零星生财之机，理性消费即可。';
+    } else if (score >= 65) {
+      wealth = seededPick(CATEGORY_TEMPLATES.wealth.good, seed + 2);
+    } else {
+      wealth = seededPick(CATEGORY_TEMPLATES.wealth.mid, seed + 2);
+    }
+
+    const hasHe = layers.some((l) => l.effects.some((e) => e.includes('合')));
+    const hasGuan = layers.some((l) => l.ganRel === '克我' || l.shishen === '官杀');
+    let love;
+    if (hasHe) {
+      love = '合气在位，单身易有轻缘，有伴宜表达关怀、小惊喜增温。';
+    } else if (hasGuan && score < 55) {
+      love = '外部压力易带入亲密关系，疲惫时别争论，冷静后再谈。';
+    } else if (score >= 70) {
+      love = seededPick(CATEGORY_TEMPLATES.love.good, seed + 4);
+    } else {
+      love = seededPick(CATEGORY_TEMPLATES.love.mid, seed + 4);
+    }
+
+    const career = seededPick(pickTemplate(CATEGORY_TEMPLATES.career, score), seed + 6);
+    const daily = seededPick(pickTemplate(CATEGORY_TEMPLATES.career, score), seed + 8);
+
+    return [
+      { tag: '健康', text: health },
+      { tag: '财运', text: wealth },
+      { tag: '感情', text: love },
+      { tag: '日常', text: `${career} ${daily}`.trim() },
+    ];
+  }
+
+  function buildLuckExplanations(dayunInfo, layers, refDate) {
+    const ty = refDate.getFullYear();
+    const tm = refDate.getMonth() + 1;
+    const td = refDate.getDate();
+    const periodMap = {};
+
+    if (dayunInfo.current) {
+      periodMap['大运'] = `${dayunInfo.periodStart}–${dayunInfo.periodEnd} 岁`;
+    } else if (dayunInfo.preLuck) {
+      periodMap['童限'] = `约 ${Math.ceil(dayunInfo.startAge)} 岁起运`;
+    }
+    periodMap['流年'] = `${ty} 年`;
+    periodMap['流月'] = `${tm} 月`;
+    periodMap['流日'] = `${tm} 月 ${td} 日`;
+
+    return layers.map((layer) => ({
+      name: layer.layerName,
+      pillar: layer.pillar,
+      period: periodMap[layer.layerName] || '',
+      shishen: layer.shishen || '平和',
+      summary: ENERGY_DESC[layer.ganRel] || '对日主影响较为平和。',
+      details: layer.effects,
+    }));
+  }
+
   function buildEnergyOverview(layers, dmWx) {
+    if (!layers || !layers.length) {
+      return `案主日主五行属${dmWx}，今日气场平稳。`;
+    }
     const total = layers.reduce((s, l) => s + l.score, 0);
     const maxWeight = layers.reduce((s, l) => s + l.weight, 0);
     const avg = total / maxWeight;
@@ -257,7 +388,11 @@
     const liunian = B.getLiuNian(ty, tm, td);
     const liuyue = B.getLiuYue(ty, tm, td);
 
+    const liuri = B.getLiuRi(ty, tm, td);
     const analysis = analyzeDayMaster(userBazi.day, todayBazi, dayunInfo, liunian, liuyue);
+    const todayEnergy = buildTodayEnergy(userBazi.day, todayBazi, analysis);
+    const personalHint = buildPersonalDailyHint(userBazi, todayBazi, analysis);
+    const luckExplanations = buildLuckExplanations(dayunInfo, analysis.layers, refDate);
     const summary = summaryText(analysis.score, analysis.notes, analysis.dayGanRel, analysis.energyOverview);
     const categories = buildCategories(analysis.score, userBazi, todayBazi);
 
@@ -267,10 +402,13 @@
       level: summary.level,
       categories,
       analysis,
+      todayEnergy,
+      personalHint,
+      luckExplanations,
       dayunInfo,
       liunian,
       liuyue,
-      liuri: todayBazi.day,
+      liuri,
     };
   }
 
