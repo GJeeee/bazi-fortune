@@ -16,8 +16,30 @@
     return h;
   }
 
-  function stickNumber(seed) {
-    return (seed % 100) + 1;
+  function pickStickLabel() {
+    const labels = [
+      '上签',
+      '上上签',
+      '超级牛逼签',
+      '一飞冲天签',
+      '锦鲤附体签',
+      '欧皇降临签',
+      '躺赢签',
+      '天选之子签',
+      '鸿运当头签',
+      '吉星高照签',
+      '喜气洋洋签',
+      '财源滚滚签',
+      '桃花朵朵签',
+      '王者归来签',
+      '开挂签',
+      '好运加满签',
+      '宇宙偏爱签',
+      '凡尔赛签',
+      '顺风顺水签',
+      '心想事成签',
+    ];
+    return labels[Math.floor(Math.random() * labels.length)];
   }
 
   function analyzePreference(userBazi) {
@@ -78,35 +100,37 @@
       score: fortune.score,
       dayGanRelation: fortune.analysis?.dayGanRel,
       stickSeed: seed,
-      stickNo: stickNumber(seed),
+      stickLabelExamples: [
+        '上签', '上上签', '超级牛逼签', '一飞冲天签', '锦鲤附体签', '欧皇降临签', '躺赢签',
+      ],
     };
   }
 
   const LOCAL_MESSAGES = {
     木: [
-      '你其实已经在长，只是还没看见树梢。别急，根扎稳了，风再大也摇不倒你。',
-      '今天最想听的，大概是：允许自己慢慢长，不必跟别人的花期比。',
-      '你心底那口气还在往上走——有人看见，也有人会在对的时候推你一把。',
+      '风也摇树我不摇，躺平日头节节高。',
+      '根在土里心在飘，今日宜疯明日再潮。',
+      '东边种豆西边长，抽象一点也风光。',
     ],
     火: [
-      '你的热不是错，只是今天宜收一点焰，把力气留给真正值得的人事物。',
-      '你想被理解、被回应——这很正常。先给自己一句「我已经够好了」。',
-      '亮着的人也会累。今晚允许自己暗一会儿，明天照样能照到该照的地方。',
+      '火焰往上蹿，锅里有神仙，你且别慌张，吉运正猖狂。',
+      '太阳晒头皮，反光照玻璃，签文说不明，贵气自然至。',
+      '热情烧过火，好事排队摸，今天宜得瑟，明天更洒脱。',
     ],
     土: [
-      '你扛了太多，今天最想听的或许是：可以放下，天塌不下来。',
-      '踏实不是迟钝，是你最稀缺的优点。有人会因这份稳，把要紧事交给你。',
-      '别总等万事俱备才动身——你迈半步，路就会长出半步。',
+      '土厚能埋金，莫怕路没灯，走一步算一步，财神在后头跟。',
+      '饼画得够圆，日子就不颠，稳住你能赢，别跟风瞎转。',
+      '脚踏实地走，天上掉块肉，抽象归抽象，福运在招手。',
     ],
     金: [
-      '你对自己够严了。今天宜松一扣，把「必须完美」换成「已经不错」。',
-      '决断力是你的天赋，但此刻最想听的也许是：慢一点，也不会错过命运。',
-      '锋芒在，但不必全露。留一点柔软，反而更赢人心。',
+      '金币叮叮当，主意硬邦邦，今天宜嘴硬，明日就称王。',
+      '刀锋藏袖里，笑里藏吉利，签文整一句，贵气自然至。',
+      '金声玉振时，躺赢也不迟，你且信此签，好事正当时。',
     ],
     水: [
-      '你想太多不是毛病，是感受力。今天把念头写下来，心就轻一半。',
-      '你需要的不是答案，是被好好接住——那就先接住自己。',
-      '流动是你的本性。困住时，换个环境、换口气，水自会找到出口。',
+      '水往低处流，好运往你兜，别问为啥，问就是牛。',
+      '浪大别晕船，浮浮沉又沉，抽象一下呗，吉运正登门。',
+      '流水不争先，偏偏到你前，今日宜摸鱼，明日变锦鲤。',
     ],
   };
 
@@ -115,10 +139,19 @@
     const wx = favored[0] || '木';
     const pool = LOCAL_MESSAGES[wx] || LOCAL_MESSAGES.木;
     const idx = (payload.stickSeed || 0) % pool.length;
-    const no = payload.stickNo || stickNumber(payload.stickSeed || 1);
     return {
-      stickNo: `第${no}签`,
+      stickNo: pickStickLabel(),
       message: pool[idx],
+    };
+  }
+
+  function normalizeStickResult(raw, payload) {
+    const msg = typeof raw?.message === 'string' ? raw.message.trim() : '';
+    if (!msg) return localStick(payload);
+    const oneLine = msg.replace(/\s+/g, '').split(/[。！？\n]/)[0];
+    return {
+      stickNo: pickStickLabel(),
+      message: oneLine || msg,
     };
   }
 
@@ -140,12 +173,7 @@
       const data = await res.json();
       if (data.error) return localStick(payload);
       const raw = data.result || data;
-      const msg = typeof raw.message === 'string' ? raw.message.trim() : '';
-      if (!msg) return localStick(payload);
-      return {
-        stickNo: raw.stickNo || `第${payload.stickNo}签`,
-        message: msg,
-      };
+      return normalizeStickResult(raw, payload);
     } catch {
       return localStick(payload);
     } finally {
