@@ -3,6 +3,13 @@
   const SHENG = { 木: '火', 火: '土', 土: '金', 金: '水', 水: '木' };
   const SHENG_BY = { 火: '木', 土: '火', 金: '土', 水: '金', 木: '水' };
 
+  const SHAKE_DURATION_MS = 720;
+  const POP_DURATION_MS = 580;
+  const COOLDOWN_MS = 3200;
+  const MOTION_THRESHOLD = 14;
+  const MOTION_HIT_COUNT = 4;
+  const SHAKE_SOUND_SRC = 'audio/shake_sound.mp3';
+
   function getConfig() {
     return window.AI_FORTUNE_CONFIG || { workerUrl: '', enabled: false };
   }
@@ -208,27 +215,79 @@
     }
   }
 
-  function playShakeSound() {
+  function playFallbackShakeSound() {
     try {
       const ctx = new (window.AudioContext || window.webkitAudioContext)();
       const t = ctx.currentTime;
-      for (let i = 0; i < 6; i++) {
+      for (let i = 0; i < 8; i++) {
         const osc = ctx.createOscillator();
         const gain = ctx.createGain();
         osc.type = 'triangle';
-        osc.frequency.value = 180 + Math.random() * 120;
-        const start = t + i * 0.07;
+        osc.frequency.value = 160 + Math.random() * 140;
+        const start = t + i * 0.06;
         gain.gain.setValueAtTime(0.001, start);
-        gain.gain.exponentialRampToValueAtTime(0.08, start + 0.01);
-        gain.gain.exponentialRampToValueAtTime(0.001, start + 0.06);
+        gain.gain.exponentialRampToValueAtTime(0.07, start + 0.008);
+        gain.gain.exponentialRampToValueAtTime(0.001, start + 0.055);
         osc.connect(gain);
         gain.connect(ctx.destination);
         osc.start(start);
-        osc.stop(start + 0.07);
+        osc.stop(start + 0.06);
       }
     } catch {
       // ignore
     }
+  }
+
+  function createShakeSound() {
+    let audio = null;
+    let useFallback = false;
+    let fallbackTimer = null;
+
+    try {
+      audio = new Audio(SHAKE_SOUND_SRC);
+      audio.loop = true;
+      audio.preload = 'auto';
+      audio.addEventListener('error', () => {
+        useFallback = true;
+      });
+    } catch {
+      useFallback = true;
+    }
+
+    return {
+      async start() {
+        if (useFallback || !audio) {
+          playFallbackShakeSound();
+          fallbackTimer = window.setInterval(playFallbackShakeSound, 280);
+          return;
+        }
+        try {
+          audio.currentTime = 0;
+          await audio.play();
+        } catch {
+          useFallback = true;
+          playFallbackShakeSound();
+          fallbackTimer = window.setInterval(playFallbackShakeSound, 280);
+        }
+      },
+      stop() {
+        if (fallbackTimer) {
+          clearInterval(fallbackTimer);
+          fallbackTimer = null;
+        }
+        if (audio && !useFallback) {
+          audio.pause();
+          audio.currentTime = 0;
+        }
+      },
+    };
+  }
+
+  function needsMotionPermission() {
+    return (
+      typeof DeviceMotionEvent !== 'undefined' &&
+      typeof DeviceMotionEvent.requestPermission === 'function'
+    );
   }
 
   function bind(options) {
@@ -236,41 +295,164 @@
     const card = options.card;
     const noEl = options.noEl;
     const msgEl = options.msgEl;
+    const hintEl = options.hintEl;
     const getCtx = options.getCtx;
-    if (!btn || !card || !getCtx) return;
+    const isActive = options.isActive || (() => true);
+    if (!btn || !card || !getCtx) return null;
 
+    const shakeSound = createShakeSound();
     let busy = false;
+    let cooldownUntil = 0;
+    let motionEnabled = false;
+    let lastAcc = { x: 0, y: 0, z: 0 };
+    let motionHits = 0;
+    let lastMotionAt = 0;
 
-    btn.addEventListener('click', async () => {
-      if (busy) return;
+    function setHint(text, visible) {
+      if (!hintEl) return;
+      hintEl.textContent = text || '';
+      hintEl.classList.toggle('hidden', !visible || !text);
+    }
+
+    function updateMotionHint() {
+      if (!window.DeviceMotionEvent) {
+        setHint('点击签筒即可求签', false);
+        return;
+      }
+      if (needsMotionPermission() && !motionEnabled) {
+        setHint('点击签筒开启摇一摇', true);
+        return;
+      }
+      if (motionEnabled) {
+        setHint('轻摇手机即可求签', true);
+        return;
+      }
+      setHint('点击或摇一摇求签', false);
+    }
+
+    async function enableMotion() {
+      if (motionEnabled || !window.DeviceMotionEvent) return motionEnabled;
+
+      if (needsMotionPermission()) {
+        try {
+          const state = await DeviceMotionEvent.requestPermission();
+          if (state !== 'granted') {
+            setHint('未授权运动传感器，可点击求签', true);
+            return false;
+          }
+        } catch {
+          setHint('无法启用摇一摇，可点击求签', true);
+          return false;
+        }
+      }
+
+      window.addEventListener('devicemotion', onDeviceMotion, { passive: true });
+      motionEnabled = true;
+      updateMotionHint();
+      return true;
+    }
+
+    function onDeviceMotion(e) {
+      if (!isActive() || busy || Date.now() < cooldownUntil) return;
+
+      const acc = e.accelerationIncludingGravity;
+      if (!acc || acc.x == null) return;
+
+      const now = Date.now();
+      if (now - lastMotionAt < 80) return;
+      lastMotionAt = now;
+
+      const delta =
+        Math.abs(acc.x - lastAcc.x) + Math.abs(acc.y - lastAcc.y) + Math.abs(acc.z - lastAcc.z);
+      lastAcc = { x: acc.x, y: acc.y, z: acc.z };
+
+      if (delta > MOTION_THRESHOLD) {
+        motionHits += 1;
+        if (motionHits >= MOTION_HIT_COUNT) {
+          motionHits = 0;
+          runShake('motion');
+        }
+      }
+    }
+
+    function resetVisual() {
+      btn.classList.remove('is-shaking', 'stick-revealed');
+      card.classList.add('hidden');
+      card.classList.remove('is-revealed');
+    }
+
+    async function runShake(source) {
+      if (busy || Date.now() < cooldownUntil) return;
       const ctx = getCtx();
-      if (!ctx) return;
+      if (!ctx || !isActive()) return;
 
       busy = true;
+      motionHits = 0;
       btn.disabled = true;
-      if (navigator.vibrate) navigator.vibrate(15);
-      btn.classList.remove('stick-revealed');
+      resetVisual();
       btn.classList.add('is-shaking');
-      card.classList.add('hidden');
-      playShakeSound();
+
+      if (navigator.vibrate) navigator.vibrate([12, 40, 12, 40, 18]);
+      shakeSound.start();
 
       const payload = buildPayload(ctx);
       const fetchPromise = fetchStick(payload);
 
-      await new Promise((r) => setTimeout(r, 720));
+      await new Promise((r) => setTimeout(r, SHAKE_DURATION_MS));
 
+      shakeSound.stop();
       btn.classList.remove('is-shaking');
       btn.classList.add('stick-revealed');
 
       const result = await fetchPromise;
+
+      await new Promise((r) => setTimeout(r, POP_DURATION_MS));
+
       if (noEl) noEl.textContent = result.stickNo;
       renderPoem(msgEl, result.message);
       card.classList.remove('hidden');
+      requestAnimationFrame(() => card.classList.add('is-revealed'));
 
+      cooldownUntil = Date.now() + COOLDOWN_MS;
       busy = false;
       btn.disabled = false;
-    });
+    }
+
+    async function onTap() {
+      if (needsMotionPermission() && !motionEnabled) {
+        await enableMotion();
+      } else if (!motionEnabled && window.DeviceMotionEvent) {
+        await enableMotion();
+      }
+      runShake('tap');
+    }
+
+    btn.addEventListener('click', onTap);
+    updateMotionHint();
+
+    return {
+      reset() {
+        busy = false;
+        cooldownUntil = 0;
+        motionHits = 0;
+        shakeSound.stop();
+        btn.disabled = false;
+        resetVisual();
+        updateMotionHint();
+      },
+      destroy() {
+        shakeSound.stop();
+        window.removeEventListener('devicemotion', onDeviceMotion);
+        btn.removeEventListener('click', onTap);
+      },
+    };
   }
 
-  window.FortuneStick = { bind, buildPayload, analyzePreference, localStick };
+  window.FortuneStick = {
+    bind,
+    buildPayload,
+    analyzePreference,
+    localStick,
+    needsMotionPermission,
+  };
 })();

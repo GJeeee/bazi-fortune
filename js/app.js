@@ -14,9 +14,11 @@ const editBtnBottom = document.getElementById('edit-btn-bottom');
 const shareBtn = document.getElementById('share-btn');
 const fortuneStickBtn = document.getElementById('fortune-stick-btn');
 const fortuneStickCard = document.getElementById('fortune-stick-card');
+const stickMotionHint = document.getElementById('stick-motion-hint');
 
 let lastResultCtx = null;
 let activeLuckTab = 'liuri';
+let stickController = null;
 
 const LUCK_TAB_LAYERS = {
   liuri: '流日',
@@ -25,13 +27,15 @@ const LUCK_TAB_LAYERS = {
   dayun: '大运',
 };
 
-const WUXING_MORANDI = {
-  木: '#8fae94',
-  火: '#d4a096',
-  土: '#c4b59a',
-  金: '#b0b4bc',
-  水: '#9eb5c4',
+const WUXING_BAR = {
+  木: '#8FBC8F',
+  火: '#E9967A',
+  土: '#D2B48C',
+  金: '#A9A9A9',
+  水: '#B0C4DE',
 };
+
+const WEEKDAY_LABELS = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
 
 function $(id) {
   return document.getElementById(id);
@@ -204,24 +208,102 @@ function readBirthFromForm() {
   return birth;
 }
 
-function parsePlainSections(plain) {
-  if (!plain) {
-    return {
-      work: '工作 / 财运：按常节奏推进即可。',
-      love: '感情 / 人际：保持真诚，不必勉强。',
-      health: '健康 / 状态：作息规律，劳逸结合。',
-    };
-  }
-  const body = plain.match(/身体([^，。]+)/)?.[1];
+function escapeHtml(text) {
+  return String(text)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+function buildLocalAdvice(ex, tabKey) {
+  const plain = ex?.plain || '';
   const wealth = plain.match(/钱上([^，。]+)/)?.[1];
   const emotion = plain.match(/感情([^，。]+)/)?.[1];
   const social = plain.match(/与人相处([^，。]+)/)?.[1];
+  const body = plain.match(/身体([^，。]+)/)?.[1];
   const loveParts = [emotion, social].filter(Boolean).join('，');
-  return {
-    work: wealth ? `工作 / 财运：${wealth}。` : '工作 / 财运：稳中求进，不宜冒进。',
-    love: loveParts ? `感情 / 人际：${loveParts}。` : '感情 / 人际：温和沟通，留一点空间。',
-    health: body ? `健康 / 状态：${body}。` : '健康 / 状态：别硬扛，适当休息。',
+
+  const fallbacks = {
+    liuri: {
+      work: '小步推进，把待办清单里最难的那条先划掉。',
+      love: '有话好好说，别把别的场子的气带回聊天框。',
+      recharge: '买杯好喝的，发呆十分钟，再决定要不要回消息。',
+    },
+    liuyue: {
+      work: '本月适合整理账目与复盘，大单先放一放。',
+      love: '约一次不聊工作的饭局，比送礼物更管用。',
+      recharge: '周末留半天完全离线，比硬撑一整周划算。',
+    },
+    liunian: {
+      work: '今年重质不重量，现金流比面子重要。',
+      love: '稳定关系靠日常小默契，不靠一次大浪漫。',
+      recharge: '培养一个与 KPI 无关的小爱好，当情绪缓冲区。',
+    },
+    dayun: {
+      work: '这步大运宜建团队与系统，别把自己当永动机。',
+      love: '长期关系会随角色变化，记得同步彼此期待。',
+      recharge: '定期体检+短途出行，比硬扛十年更划算。',
+    },
   };
+  const base = fallbacks[tabKey] || fallbacks.liuri;
+
+  return {
+    work: wealth || base.work,
+    love: loveParts || base.love,
+    recharge: body ? `留意${body}，${base.recharge}` : base.recharge,
+  };
+}
+
+function buildLocalLifeAnnotation(ex, tabKey) {
+  const ss = ex?.shishen || ex?.technical?.match(/十神(\S+)/)?.[1] || '';
+  if (tabKey === 'liunian') {
+    return ss.includes('财')
+      ? '今年是考验你现金流与消费纪律的一年，别用「投资自己」当乱花钱的借口。'
+      : ss.includes('官') || ss.includes('杀')
+        ? '今年像升级打怪的新章节，压力会推着你成长，但别把所有关卡一次全开。'
+        : '今年的关键考题是「取舍」——抓主线，放支线，比什么都想要更划算。';
+  }
+  if (tabKey === 'dayun') {
+    return '这步大运的主旋律是「从单打独斗转向组队副本」，学会借力和分工，比一个人硬扛更值。';
+  }
+  return '';
+}
+
+function buildLocalTabTitle(ex, tabKey, refDate, userBazi) {
+  const dm = userBazi?.day?.gan || '';
+  const dmWx = dm ? Bazi.getWuxingGan(dm) : '';
+  const dmLabel = dm ? `${dm}${dmWx}` : '日主';
+  if (tabKey === 'liuri') {
+    return `${dmLabel}的${WEEKDAY_LABELS[refDate.getDay()]}副本`;
+  }
+  if (tabKey === 'liuyue') return `${ex?.pillar || '流月'} · 本月生存指南`;
+  if (tabKey === 'liunian') return `${ex?.pillar || '流年'} · 年度关键考题`;
+  return `${ex?.pillar || '大运'} · 十年主旋律`;
+}
+
+function renderAdviceList(advice) {
+  if (!advice) return '';
+  const items = [
+    { emoji: '💼', label: '搞钱 / 工作', text: advice.work },
+    { emoji: '❤️', label: '情感 / 社交', text: advice.love },
+    { emoji: '🔋', label: '回血方式', text: advice.recharge },
+  ].filter((item) => item.text);
+
+  if (!items.length) return '';
+
+  return `<ul class="luck-advice-list">${items
+    .map(
+      (item) => `
+    <li class="luck-advice-item">
+      <span class="luck-advice-emoji" aria-hidden="true">${item.emoji}</span>
+      <div class="luck-advice-body">
+        <p class="luck-advice-label">${escapeHtml(item.label)}</p>
+        <p class="luck-advice-text">${escapeHtml(item.text)}</p>
+      </div>
+    </li>`
+    )
+    .join('')}</ul>`;
 }
 
 function buildPersonalityKeywords(fortune, userBazi) {
@@ -236,16 +318,14 @@ function buildPersonalityKeywords(fortune, userBazi) {
   return chunks.slice(0, 3).join(' · ') || raw.slice(0, 28);
 }
 
-function formatTabTitle(ex, tabKey, refDate) {
+function formatTabSubtitle(ex, tabKey, refDate) {
   if (!ex) return '';
   if (tabKey === 'liuri') {
     const tm = refDate.getMonth() + 1;
     const td = refDate.getDate();
-    return `${ex.pillar}日 · ${tm}月${td}日`;
+    return `${ex.pillar} · ${tm}月${td}日`;
   }
-  if (tabKey === 'liuyue') return `${ex.pillar} · ${ex.period || '本月'}`;
-  if (tabKey === 'liunian') return `${ex.pillar} · ${ex.period || '今年'}`;
-  return `${ex.pillar} · ${ex.period || '大运'}`;
+  return ex.period || '';
 }
 
 function getLayerExplanation(fortune, tabKey) {
@@ -254,28 +334,40 @@ function getLayerExplanation(fortune, tabKey) {
   return list.find((ex) => ex.name === name) || (tabKey === 'dayun' ? list.find((ex) => ex.name === '童限') : null);
 }
 
-function renderLuckTabPanel(fortune, tabKey, refDate) {
+function renderLuckTabPanel(fortune, tabKey, refDate, userBazi) {
   const ex = getLayerExplanation(fortune, tabKey);
   if (!ex) {
     setHtml('luck-tab-panel', '<p class="luck-tab-section-text">暂无该周期解读。</p>');
     return;
   }
-  const sections = parsePlainSections(ex.plain);
-  const highlight = ex.risk || '今日宜按节奏行事，忌硬扛。';
+  const title =
+    ex.aiTitle || buildLocalTabTitle(ex, tabKey, refDate, userBazi || lastResultCtx?.userBazi);
+  const subtitle = formatTabSubtitle(ex, tabKey, refDate);
+  const coreReview =
+    ex.coreReview ||
+    (ex.risk && !/平稳|按常|整体能量/.test(ex.risk) ? ex.risk : '') ||
+    '今天别当炮灰也别当缩头龟，按自己的节奏出牌就行。';
+  const advice = ex.advice || buildLocalAdvice(ex, tabKey);
+  const lifeAnnotation =
+    ex.lifeAnnotation ||
+    ((tabKey === 'dayun' || tabKey === 'liunian') ? buildLocalLifeAnnotation(ex, tabKey) : '');
+  const showLifeNote = (tabKey === 'dayun' || tabKey === 'liunian') && lifeAnnotation;
+
   setHtml(
     'luck-tab-panel',
     `
-    <h3 class="luck-tab-title">${formatTabTitle(ex, tabKey, refDate)}</h3>
-    <div class="luck-tab-highlight">${highlight}</div>
-    <div class="luck-tab-section">
-      <p class="luck-tab-section-text">${sections.work}</p>
-    </div>
-    <div class="luck-tab-section">
-      <p class="luck-tab-section-text">${sections.love}</p>
-    </div>
-    <div class="luck-tab-section">
-      <p class="luck-tab-section-text">${sections.health}</p>
+    <h3 class="luck-tab-title">${escapeHtml(title)}</h3>
+    ${subtitle ? `<p class="luck-tab-subtitle">${escapeHtml(subtitle)}</p>` : ''}
+    <div class="luck-tab-core">${escapeHtml(coreReview)}</div>
+    ${renderAdviceList(advice)}
+    ${
+      showLifeNote
+        ? `<div class="luck-life-note">
+      <p class="luck-life-note-label">人生批注</p>
+      <p class="luck-life-note-text">${escapeHtml(lifeAnnotation)}</p>
     </div>`
+        : ''
+    }`
   );
 }
 
@@ -295,6 +387,13 @@ function renderResultHero(userBazi, fortune) {
   setText('personality-keywords', buildPersonalityKeywords(fortune, userBazi));
 }
 
+function shishenTagHtml(name, wx, isDayMaster) {
+  if (!name) return '';
+  const cls = isDayMaster ? 'paipan-ss-tag is-daymaster' : 'paipan-ss-tag';
+  const wxAttrStr = wx ? ` data-wuxing="${wxAttr(wx)}"` : '';
+  return `<span class="${cls}"${wxAttrStr}>${escapeHtml(name)}</span>`;
+}
+
 function renderPaipan(userBazi) {
   if (!window.Paipan) throw new Error('排盘模块未加载，请强制刷新页面');
 
@@ -302,15 +401,20 @@ function renderPaipan(userBazi) {
   setHtml(
     'paipan-grid',
     chart
-      .map(
-        (col) => `
+      .map((col) => {
+        const zhiGan = Paipan.getZhiMainGan(col.zhi);
+        const zhiGanWx = Bazi.getWuxingGan(zhiGan);
+        const isDay = col.ganShishen === '日主';
+        return `
       <div class="paipan-compact-col">
         <span class="paipan-compact-label">${col.label.replace('柱', '')}</span>
-        <span class="paipan-compact-gz">${col.gan}</span>
-        <span class="paipan-compact-gz">${col.zhi}</span>
-        <span class="paipan-compact-ss" title="${col.ganShishen} · ${col.zhiShishen}">${col.ganShishen}</span>
-      </div>`
-      )
+        <div class="paipan-compact-block">
+          <span class="paipan-compact-gz" data-wuxing="${wxAttr(col.ganWx)}">${col.gan}</span>
+          <span class="paipan-compact-gz" data-wuxing="${wxAttr(col.zhiWx)}">${col.zhi}</span>
+          ${shishenTagHtml(isDay ? '日主' : col.zhiShishen, isDay ? col.ganWx : zhiGanWx, isDay)}
+        </div>
+      </div>`;
+      })
       .join('')
   );
 
@@ -323,7 +427,7 @@ function renderPaipan(userBazi) {
         (wx) => `
       <div class="wx-bar-row">
         <span class="wx-bar-label">${wx}</span>
-        <div class="wx-bar-track"><div class="wx-bar-fill" style="width:${percents[wx]}%;background:${WUXING_MORANDI[wx]}"></div></div>
+        <div class="wx-bar-track"><div class="wx-bar-fill" data-wuxing="${wx}" style="width:${percents[wx]}%"></div></div>
         <span class="wx-bar-pct">${percents[wx]}%</span>
       </div>`
       )
@@ -334,7 +438,7 @@ function renderPaipan(userBazi) {
 function renderResultPage(fortune, userBazi, refDate) {
   renderResultHero(userBazi, fortune);
   renderPaipan(userBazi);
-  renderLuckTabPanel(fortune, activeLuckTab, refDate);
+  renderLuckTabPanel(fortune, activeLuckTab, refDate, userBazi);
 }
 
 async function handleShareReport() {
@@ -368,8 +472,20 @@ function mergeAiIntoFortune(fortune, ai) {
       const hit = byName[ex.name];
       if (!hit) return ex;
       const aiRisk = typeof hit.risk === 'string' ? hit.risk.trim() : '';
+      const advice =
+        hit.advice && typeof hit.advice === 'object'
+          ? {
+              work: hit.advice.work || hit.advice.money || '',
+              love: hit.advice.love || hit.advice.social || '',
+              recharge: hit.advice.recharge || hit.advice.energy || hit.advice.health || '',
+            }
+          : null;
       return {
         ...ex,
+        aiTitle: hit.title || ex.aiTitle,
+        coreReview: hit.coreReview || ex.coreReview,
+        advice: advice || ex.advice,
+        lifeAnnotation: hit.lifeAnnotation || ex.lifeAnnotation,
         plain: hit.plain || ex.plain,
         timeline: hit.timeline || ex.timeline,
         risk: aiRisk || ex.risk,
@@ -395,8 +511,8 @@ async function enhanceResultWithAi(ctx) {
   }
 }
 
-function renderDayunLiunian(fortune, refDate) {
-  renderLuckTabPanel(fortune, activeLuckTab, refDate || new Date());
+function renderDayunLiunian(fortune, refDate, userBazi) {
+  renderLuckTabPanel(fortune, activeLuckTab, refDate || new Date(), userBazi);
 }
 
 async function showResult(rawBirth) {
@@ -423,11 +539,7 @@ async function showResult(rawBirth) {
   window.scrollTo({ top: 0, behavior: 'smooth' });
 
   lastResultCtx = { userBazi, todayBazi, birth, fortune, refDate: now };
-  if (fortuneStickBtn) {
-    fortuneStickBtn.classList.remove('is-shaking', 'stick-revealed');
-    fortuneStickBtn.disabled = false;
-  }
-  if (fortuneStickCard) fortuneStickCard.classList.add('hidden');
+  if (stickController) stickController.reset();
 
   fortune = await enhanceResultWithAi({
     userBazi,
@@ -532,17 +644,19 @@ function initApp() {
       const tab = btn.dataset.tab;
       if (!tab || !lastResultCtx) return;
       setActiveLuckTab(tab);
-      renderLuckTabPanel(lastResultCtx.fortune, tab, lastResultCtx.refDate);
+      renderLuckTabPanel(lastResultCtx.fortune, tab, lastResultCtx.refDate, lastResultCtx.userBazi);
     });
   });
 
   if (window.FortuneStick && fortuneStickBtn && fortuneStickCard) {
-    FortuneStick.bind({
+    stickController = FortuneStick.bind({
       btn: fortuneStickBtn,
       card: fortuneStickCard,
       noEl: $('fortune-stick-no'),
       msgEl: $('fortune-stick-msg'),
+      hintEl: stickMotionHint,
       getCtx: () => lastResultCtx,
+      isActive: () => !resultSection.classList.contains('hidden'),
     });
   }
   quickBtn.addEventListener('click', () => {

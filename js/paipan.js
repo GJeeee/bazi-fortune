@@ -190,5 +190,6 @@ window.Paipan = {
   renderWuxingPie,
   buildPersonalitySummary,
   getShishenName,
+  getZhiMainGan,
   WUXING_COLORS,
 };

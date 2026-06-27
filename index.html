@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1">
   <meta name="theme-color" content="#F9F7F2">
   <title>今日宜忌</title>
-  <link rel="stylesheet" href="css/style.css?v=32">
+  <link rel="stylesheet" href="css/style.css?v=36">
 </head>
 <body>
   <div class="app">
@@ -100,11 +100,22 @@
           <div class="result-tab-panel" id="luck-tab-panel" role="tabpanel"></div>
         </section>
 
-        <section class="result-stick-wrap">
-          <button type="button" class="stick-cta-btn" id="fortune-stick-btn" aria-label="摇签求签">
-            <span class="stick-cta-icon">🎋</span>
-            <span class="stick-cta-text">摇一摇，求今日灵签</span>
+        <section class="result-stick-wrap stick-zone" id="stick-zone">
+          <button type="button" class="btn-stick" id="fortune-stick-btn" aria-label="摇一摇，求今日灵签">
+            <span class="stick-stage">
+              <span class="stick-pop" id="stick-pop-bar" aria-hidden="true"></span>
+              <svg class="stick-tube-icon" viewBox="0 0 48 56" aria-hidden="true">
+                <ellipse cx="24" cy="17" rx="11" ry="2.8" fill="none" stroke="currentColor" stroke-width="0.9" opacity="0.45"/>
+                <path d="M13 17 L35 17" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
+                <path d="M13 17 C11 17 10 44 24 50 C38 44 37 17 35 17" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/>
+                <line x1="21" y1="22" x2="21" y2="36" stroke="currentColor" stroke-width="0.65" opacity="0.22" stroke-linecap="round"/>
+                <line x1="24" y1="21" x2="24" y2="38" stroke="currentColor" stroke-width="0.65" opacity="0.28" stroke-linecap="round"/>
+                <line x1="27" y1="23" x2="27" y2="35" stroke="currentColor" stroke-width="0.65" opacity="0.2" stroke-linecap="round"/>
+              </svg>
+            </span>
+            <span class="stick-label">摇一摇，求今日灵签</span>
           </button>
+          <p class="stick-motion-hint hidden" id="stick-motion-hint" aria-live="polite"></p>
           <div class="fortune-stick-card hidden" id="fortune-stick-card">
             <p class="fortune-stick-no" id="fortune-stick-no"></p>
             <div class="fortune-stick-msg" id="fortune-stick-msg"></div>
@@ -123,12 +134,12 @@
   <script src="js/ai-config.js?v=22"></script>
   <script src="js/bazi.js?v=22"></script>
   <script src="js/huangli.js?v=22"></script>
-  <script src="js/paipan.js?v=22"></script>
+  <script src="js/paipan.js?v=23"></script>
   <script src="js/fortune.js?v=28"></script>
-  <script src="js/ai-fortune.js?v=28"></script>
+  <script src="js/ai-fortune.js?v=29"></script>
   <script src="js/daily-hint.js?v=2"></script>
-  <script src="js/fortune-stick.js?v=26"></script>
+  <script src="js/fortune-stick.js?v=27"></script>
   <script src="js/muyu.js?v=23"></script>
-  <script src="js/app.js?v=32"></script>
+  <script src="js/app.js?v=35"></script>
 </body>
 </html>
