@@ -395,25 +395,10 @@
     else if (dayLayer && dayLayer.shishen === '食伤') lovePool = LOVE_POOL.食伤;
     const love = seededPick(lovePool, seed + 11);
 
-    const weekday = DAILY_WEEK[refDate.getDay()];
-    const scene = seededPick(DAILY_SCENE, seed + 13);
-    const shishenTip = dayLayer
-      ? seededPick(
-          [
-            `流日${todayGz}偏${dayLayer.shishen}，${scene}`,
-            `今日${SHISHEN[dayGanRel] || '平和'}气，${weekday}`,
-            `${todayBazi.day.gan}${getWuxingGan(todayBazi.day.gan)}日，${scene}`,
-            `流日与你${dayGanRel === '生我' ? '相生' : dayGanRel === '克我' ? '相克' : '中'}，${weekday}`,
-          ],
-          seed + 17
-        )
-      : `${weekday} ${scene}`;
-
     return [
       { tag: '健康', text: health.trim() },
       { tag: '财运', text: wealth },
       { tag: '感情', text: love },
-      { tag: '日常', text: shishenTip },
     ];
   }
 

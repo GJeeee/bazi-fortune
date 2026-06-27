@@ -455,7 +455,7 @@ body {
 .fortune-stick-section {
   text-align: center;
   margin: 0;
-  padding: 12px 16px 14px;
+  padding: 4px 12px 6px;
   border-top: none;
 }
 
@@ -463,14 +463,14 @@ body {
   font-size: 0.6875rem;
   color: var(--text-muted);
   letter-spacing: 0.14em;
-  margin: 0 0 12px;
+  margin: 0 0 6px;
 }
 
 .btn-fortune-stick {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 10px 20px 8px;
+  padding: 6px 16px 4px;
   border: 1px solid var(--border);
   border-radius: 20px;
   background: var(--card);
@@ -576,9 +576,9 @@ body {
 }
 
 .fortune-stick-card {
-  margin: 14px auto 0;
+  margin: 8px auto 0;
   max-width: 320px;
-  padding: 14px 16px;
+  padding: 10px 14px;
   border-radius: 14px;
   background: var(--card);
   border: 1px solid var(--border);
@@ -1197,18 +1197,23 @@ body {
   text-align: center;
   font-size: 0.8125rem;
   color: var(--text-muted);
-  margin-bottom: 12px;
+  margin-bottom: 8px;
+}
+
+#result-section .card.result-panel {
+  padding: 14px 16px;
+  margin-bottom: 10px;
 }
 
 .result-panel {
-  margin-bottom: 14px;
+  margin-bottom: 10px;
 }
 
 .panel-title {
-  font-size: 1.125rem;
+  font-size: 1.0625rem;
   font-weight: var(--fw);
   letter-spacing: 0.06em;
-  margin-bottom: 14px;
+  margin-bottom: 10px;
 }
 
 .panel-sub {
@@ -1227,7 +1232,7 @@ body {
 
 /* Energy ratio bar */
 .hp-bars {
-  margin-bottom: 16px;
+  margin-bottom: 10px;
 }
 
 .energy-ratio-labels {
@@ -1271,14 +1276,14 @@ body {
 .energy-hints {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 6px;
 }
 
 .energy-hint-item {
   display: flex;
   gap: 10px;
   align-items: flex-start;
-  padding: 10px 12px;
+  padding: 8px 10px;
   background: var(--bg);
   border-radius: 10px;
 }

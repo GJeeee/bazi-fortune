@@ -201,9 +201,10 @@ function renderHpBars(energy) {
 }
 
 function renderEnergyHints(hints) {
-  const list = hints && hints.length
+  const list = (hints && hints.length
     ? hints
-    : [{ tag: '提醒', text: '今日能量数据加载中，请刷新页面。' }];
+    : [{ tag: '提醒', text: '今日能量数据加载中，请刷新页面。' }]
+  ).filter((item) => item.tag !== '日常');
   setHtml(
     'energy-hints',
     list

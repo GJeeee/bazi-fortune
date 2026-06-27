@@ -93,7 +93,7 @@
   function normalizeAiResult(raw) {
     if (!raw || typeof raw !== 'object') return null;
     const hints = Array.isArray(raw.hints)
-      ? raw.hints.filter((h) => h && h.tag && h.text).slice(0, 4)
+      ? raw.hints.filter((h) => h && h.tag && h.text && h.tag !== '日常').slice(0, 3)
       : null;
     const layers = Array.isArray(raw.layers)
       ? raw.layers
