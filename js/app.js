@@ -110,35 +110,30 @@ function renderTodayHome() {
   const m = now.getMonth() + 1;
   const d = now.getDate();
   const hour = getCurrentHourValue();
+  const week = ['日', '一', '二', '三', '四', '五', '六'];
 
-  setText('home-datetime', formatDateTime(now));
+  setText('home-day-num', String(d));
 
   const almanac = Huangli.getDailyAlmanac(y, m, d);
   const baziNow = Bazi.calculateBazi(y, m, d, hour);
   const pillars = [baziNow.year, baziNow.month, baziNow.day, baziNow.hour];
+
+  setText(
+    'home-meta',
+    `${y}年${m}月 · 星期${week[now.getDay()]} · ${almanac.yueLing}`
+  );
 
   setHtml(
     'home-ganzhi',
     pillars.map((p) => renderGanzhiChar(p.gan, p.zhi)).join('')
   );
 
-  const { solar, yueLing } = almanac;
-  setText(
-    'jieqi-note',
-    `${solar.termName} · ${solar.hou} · ${solar.wuHou} · ${yueLing}`
-  );
+  const { solar } = almanac;
+  setText('jieqi-note', `${solar.termName} · ${solar.hou} · ${solar.wuHou}`);
 
   setHtml(
     'huangli-block',
-    `
-    <div class="huangli-row yi">
-      <span class="hl-key">宜</span>
-      <div class="hl-tags">${almanac.yi.map((t) => `<span class="hl-tag yi">${t}</span>`).join('')}</div>
-    </div>
-    <div class="huangli-row ji">
-      <span class="hl-key">忌</span>
-      <div class="hl-tags">${almanac.ji.map((t) => `<span class="hl-tag ji">${t}</span>`).join('')}</div>
-    </div>`
+    `宜 ${almanac.yi.join(' ')}<span class="yiji-sep">|</span>忌 ${almanac.ji.join(' ')}`
   );
 
   setText('daily-hint', almanac.dailyHint);

@@ -3,60 +3,67 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1">
-  <meta name="theme-color" content="#f9faf8">
+  <meta name="theme-color" content="#F9F8F6">
   <title>老黄历</title>
-  <link rel="stylesheet" href="css/style.css?v=29">
+  <link rel="stylesheet" href="css/style.css?v=30">
 </head>
 <body>
   <div class="app">
     <main id="home-section" class="home-screen">
-      <section class="home-almanac">
-        <div class="almanac-inner">
-          <h1 class="home-title">老黄历</h1>
-          <p class="home-datetime" id="home-datetime"></p>
-          <div class="ganzhi-inline" id="home-ganzhi"></div>
-          <p class="jieqi-note" id="jieqi-note"></p>
-          <div class="huangli-compact" id="huangli-block"></div>
-          <p class="daily-hint" id="daily-hint"></p>
-        </div>
-      </section>
+      <header class="home-daily">
+        <p class="home-kicker">老黄历</p>
+        <p class="home-day-num" id="home-day-num" aria-hidden="true"></p>
+        <p class="home-meta" id="home-meta"></p>
+        <p class="home-ganzhi-serial" id="home-ganzhi"></p>
+        <p class="home-jieqi" id="jieqi-note"></p>
+        <p class="home-yiji" id="huangli-block"></p>
+        <p class="daily-hint" id="daily-hint"></p>
+      </header>
 
-      <section class="home-birth">
-        <h2 class="birth-heading">输入出生时间</h2>
-        <form id="birth-form" class="birth-inline" autocomplete="off" novalidate>
-          <div class="birth-row">
-            <input type="number" id="birth-year" class="inp-n" min="1920" max="2030" placeholder="1990" aria-label="出生年">
-            <span class="unit">年</span>
-            <input type="number" id="birth-month" class="inp-n inp-s" min="1" max="12" placeholder="6" aria-label="月">
-            <span class="unit">月</span>
-            <input type="number" id="birth-day" class="inp-n inp-s" min="1" max="31" placeholder="15" aria-label="日">
-            <span class="unit">日</span>
-            <select id="birth-hour" class="inp-shi" aria-label="出生时辰"></select>
-          </div>
-          <div class="birth-row birth-row-gender">
-            <div class="gender-inline" role="radiogroup" aria-label="性别">
-              <label class="g-opt"><input type="radio" name="gender" value="male" checked>男</label>
-              <label class="g-opt"><input type="radio" name="gender" value="female">女</label>
+      <section class="home-input">
+        <form id="birth-form" class="home-form" autocomplete="off" novalidate>
+          <div class="birth-fields">
+            <label class="field-item">
+              <input type="number" id="birth-year" class="inp-line" min="1920" max="2030" placeholder="1990" aria-label="出生年">
+              <span class="field-unit">年</span>
+            </label>
+            <label class="field-item">
+              <input type="number" id="birth-month" class="inp-line inp-short" min="1" max="12" placeholder="6" aria-label="月">
+              <span class="field-unit">月</span>
+            </label>
+            <label class="field-item">
+              <input type="number" id="birth-day" class="inp-line inp-short" min="1" max="31" placeholder="15" aria-label="日">
+              <span class="field-unit">日</span>
+            </label>
+            <label class="field-item field-shi">
+              <select id="birth-hour" class="inp-line inp-select" aria-label="出生时辰"></select>
+            </label>
+            <div class="gender-seg" role="radiogroup" aria-label="性别">
+              <label class="seg-opt"><input type="radio" name="gender" value="male" checked>男</label>
+              <label class="seg-opt"><input type="radio" name="gender" value="female">女</label>
             </div>
           </div>
           <p class="form-error hidden" id="form-error" role="alert"></p>
-          <button type="button" class="btn-muyu" id="submit-btn" aria-label="点击查看今日剧本">
-            <span class="muyu-wrap">
-              <svg class="muyu-icon" viewBox="0 0 48 48" aria-hidden="true">
-                <ellipse cx="24" cy="26" rx="16" ry="11" fill="none" stroke="currentColor" stroke-width="1.2"/>
-                <path d="M12 26 Q24 18 36 26" fill="none" stroke="currentColor" stroke-width="1"/>
-                <line x1="24" y1="15" x2="24" y2="37" stroke="currentColor" stroke-width="0.8" opacity="0.5"/>
-                <circle cx="24" cy="12" r="2" fill="currentColor" opacity="0.35"/>
-              </svg>
-            </span>
-            <span class="muyu-label">点击查看今日剧本</span>
-          </button>
-          <button type="button" class="btn-link hidden" id="quick-btn">查看已保存</button>
+          <div class="muyu-zone">
+            <button type="button" class="btn-muyu" id="submit-btn" aria-label="敲击木鱼排盘">
+              <span class="muyu-wrap">
+                <svg class="muyu-icon" viewBox="0 0 48 48" aria-hidden="true">
+                  <ellipse cx="24" cy="26" rx="16" ry="11" fill="none" stroke="currentColor" stroke-width="1.2"/>
+                  <path d="M12 26 Q24 18 36 26" fill="none" stroke="currentColor" stroke-width="1"/>
+                  <line x1="24" y1="15" x2="24" y2="37" stroke="currentColor" stroke-width="0.8" opacity="0.5"/>
+                  <circle cx="24" cy="12" r="2" fill="currentColor" opacity="0.35"/>
+                </svg>
+              </span>
+              <span class="muyu-label">敲击以此排盘</span>
+            </button>
+          </div>
         </form>
-        <footer class="home-footer">
-          <p>AI说说而已，制作人免责。</p>
-        </footer>
       </section>
+
+      <footer class="home-footer">
+        <button type="button" class="btn-foot-link hidden" id="quick-btn">查看已保存</button>
+        <p class="home-foot-note">AI说说而已，制作人免责。</p>
+      </footer>
     </main>
 
     <section class="hidden" id="result-section">
@@ -126,6 +133,6 @@
   <script src="js/ai-fortune.js?v=28"></script>
   <script src="js/fortune-stick.js?v=26"></script>
   <script src="js/muyu.js?v=23"></script>
-  <script src="js/app.js?v=28"></script>
+  <script src="js/app.js?v=29"></script>
 </body>
 </html>
