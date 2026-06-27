@@ -71,7 +71,7 @@ body {
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-end;
   padding: 8px;
   border-bottom: 1px solid var(--border);
 }
@@ -101,7 +101,7 @@ body {
   text-align: center;
   font-size: 0.6875rem;
   color: var(--text-muted);
-  margin-top: 6px;
+  margin-top: 4px;
   margin-bottom: 0;
   line-height: 1.45;
   flex-shrink: 0;
@@ -114,7 +114,7 @@ body {
   gap: 10px;
   flex-wrap: nowrap;
   width: 100%;
-  margin-top: 6px;
+  margin-top: 4px;
   margin-bottom: 0;
   flex-shrink: 0;
 }
@@ -133,7 +133,7 @@ body {
   color: var(--text-muted);
   text-align: center;
   line-height: 1.45;
-  margin-top: 5px;
+  margin-top: 3px;
   margin-bottom: 0;
   letter-spacing: 0.03em;
   flex-shrink: 0;
@@ -145,16 +145,16 @@ body {
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  gap: 5px;
+  gap: 4px;
   width: 100%;
-  margin-top: 8px;
+  margin-top: 6px;
 }
 
 .huangli-row {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
+  gap: 10px;
   font-size: 0.8125rem;
   line-height: 1.45;
   width: 100%;
@@ -179,7 +179,7 @@ body {
   color: var(--text-muted);
   text-align: center;
   line-height: 1.5;
-  margin-top: 8px;
+  margin-top: 6px;
   letter-spacing: 0.05em;
   opacity: 0.88;
   flex-shrink: 0;
@@ -204,11 +204,29 @@ body {
 
 .huangli-row .hl-key {
   flex-shrink: 0;
-  font-weight: var(--fw);
+  font-weight: 700;
+  font-size: 1.0625rem;
+  line-height: 1;
+  width: 1.9rem;
+  height: 1.9rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  letter-spacing: 0;
 }
 
-.huangli-row.yi .hl-key { color: var(--wood); }
-.huangli-row.ji .hl-key { color: var(--fire); }
+.huangli-row.yi .hl-key {
+  color: #fff;
+  background: var(--wood);
+  box-shadow: 0 1px 4px rgba(106, 154, 122, 0.35);
+}
+
+.huangli-row.ji .hl-key {
+  color: #fff;
+  background: var(--fire);
+  box-shadow: 0 1px 4px rgba(196, 132, 122, 0.4);
+}
 
 .birth-heading {
   font-size: 0.875rem;
