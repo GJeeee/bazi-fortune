@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1">
   <meta name="theme-color" content="#f9faf8">
   <title>老黄历</title>
-  <link rel="stylesheet" href="css/style.css?v=24">
+  <link rel="stylesheet" href="css/style.css?v=25">
 </head>
 <body>
   <div class="app">
@@ -67,25 +67,7 @@
         <div class="energy-hints" id="energy-hints"></div>
       </div>
 
-      <div class="card result-panel">
-        <h2 class="panel-title">八字排盘</h2>
-        <p class="panel-sub">日主：<span id="day-master"></span></p>
-        <div class="paipan-grid" id="paipan-grid"></div>
-        <div class="wuxing-pie" id="wuxing-pie"></div>
-        <p class="personality-summary" id="personality-summary"></p>
-      </div>
-
-      <div class="card result-panel">
-        <h2 class="panel-title">流年大运</h2>
-        <div class="liunian-highlight" id="liunian-highlight"></div>
-        <div class="luck-detail" id="luck-detail"></div>
-        <div class="dayun-scroll" id="dayun-scroll"></div>
-        <p class="luck-meta" id="luck-meta"></p>
-      </div>
-
-      <button type="button" class="btn-secondary result-back" id="edit-btn">返回首页</button>
-
-      <section class="fortune-stick-section" id="fortune-stick-section">
+      <div class="card result-panel fortune-stick-section" id="fortune-stick-section">
         <p class="fortune-stick-hint">摇一摇，求根签</p>
         <button type="button" class="btn-fortune-stick" id="fortune-stick-btn" aria-label="摇签求签">
           <div class="fortune-stick-stage">
@@ -114,7 +96,25 @@
           <p class="fortune-stick-no" id="fortune-stick-no"></p>
           <p class="fortune-stick-msg" id="fortune-stick-msg"></p>
         </div>
-      </section>
+      </div>
+
+      <div class="card result-panel">
+        <h2 class="panel-title">八字排盘</h2>
+        <p class="panel-sub">日主：<span id="day-master"></span></p>
+        <div class="paipan-grid" id="paipan-grid"></div>
+        <div class="wuxing-pie" id="wuxing-pie"></div>
+        <p class="personality-summary" id="personality-summary"></p>
+      </div>
+
+      <div class="card result-panel">
+        <h2 class="panel-title">流年大运</h2>
+        <div class="liunian-highlight" id="liunian-highlight"></div>
+        <div class="luck-detail" id="luck-detail"></div>
+        <div class="dayun-scroll" id="dayun-scroll"></div>
+        <p class="luck-meta" id="luck-meta"></p>
+      </div>
+
+      <button type="button" class="btn-secondary result-back" id="edit-btn">返回首页</button>
 
       <footer class="footer result-footer">
         <p>AI说说而已，制作人免责。</p>
