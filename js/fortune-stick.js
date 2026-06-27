@@ -248,6 +248,7 @@
 
       busy = true;
       btn.disabled = true;
+      if (navigator.vibrate) navigator.vibrate(15);
       btn.classList.remove('stick-revealed');
       btn.classList.add('is-shaking');
       card.classList.add('hidden');
