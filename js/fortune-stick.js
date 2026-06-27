@@ -145,6 +145,33 @@
     };
   }
 
+  function formatPoemLines(text) {
+    const cleaned = text.replace(/[。！？\s]/g, '').trim();
+    if (!cleaned) return ['', ''];
+
+    const parts = cleaned.split(/[，,、]/).filter(Boolean);
+    if (parts.length >= 4) {
+      return [`${parts[0]}，${parts[1]}`, `${parts[2]}，${parts[3]}`];
+    }
+    if (parts.length === 3) {
+      return [parts[0], `${parts[1]}，${parts[2]}`];
+    }
+    if (parts.length === 2) {
+      return [parts[0], parts[1]];
+    }
+
+    const mid = Math.ceil(cleaned.length / 2);
+    return [cleaned.slice(0, mid), cleaned.slice(mid)];
+  }
+
+  function renderPoem(el, message) {
+    if (!el) return;
+    const [line1, line2] = formatPoemLines(message);
+    el.innerHTML = `
+      <p class="fortune-stick-line">${line1}</p>
+      <p class="fortune-stick-line">${line2}</p>`;
+  }
+
   function normalizeStickResult(raw, payload) {
     const msg = typeof raw?.message === 'string' ? raw.message.trim() : '';
     if (!msg) return localStick(payload);
@@ -236,7 +263,7 @@
 
       const result = await fetchPromise;
       if (noEl) noEl.textContent = result.stickNo;
-      if (msgEl) msgEl.textContent = result.message;
+      renderPoem(msgEl, result.message);
       card.classList.remove('hidden');
 
       busy = false;

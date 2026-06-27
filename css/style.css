@@ -574,21 +574,32 @@ body {
   background: var(--card);
   border: 1px solid var(--border);
   animation: stick-card-in 0.45s ease-out;
+  text-align: center;
 }
 
 .fortune-stick-no {
   font-size: 0.75rem;
   color: var(--earth);
   letter-spacing: 0.1em;
-  margin: 0 0 8px;
+  margin: 0 0 10px;
+  text-align: center;
 }
 
 .fortune-stick-msg {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+}
+
+.fortune-stick-line {
   font-size: 0.875rem;
-  line-height: 1.65;
+  line-height: 1.75;
   color: var(--text);
   margin: 0;
-  letter-spacing: 0.03em;
+  letter-spacing: 0.06em;
+  text-align: center;
 }
 
 @keyframes stick-card-in {
