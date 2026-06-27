@@ -437,6 +437,36 @@ body {
   padding: env(safe-area-inset-top, 12px) 16px env(safe-area-inset-bottom, 12px);
   overflow-y: auto;
   min-height: 100dvh;
+  font-weight: 400;
+}
+
+#result-section .panel-title,
+#result-section .energy-hint-text,
+#result-section .luck-detail-plain,
+#result-section .personality-summary,
+#result-section .luck-meta,
+#result-section .energy-brief,
+#result-section .pie-pct {
+  font-weight: 400;
+}
+
+#result-section.is-ai-loading .energy-hints,
+#result-section.is-ai-loading .luck-detail,
+#result-section.is-ai-loading .personality-summary {
+  opacity: 0.55;
+}
+
+.ai-status {
+  display: none;
+  text-align: center;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin: 0 0 10px;
+  letter-spacing: 0.04em;
+}
+
+#result-section.is-ai-loading .ai-status {
+  display: block;
 }
 
 @media (max-width: 360px) {
@@ -1078,6 +1108,7 @@ body {
   line-height: 1.65;
   color: var(--text);
   margin: 0;
+  font-weight: 400;
 }
 
 /* Paipan */
@@ -1221,7 +1252,7 @@ body {
 
 .luck-current-sub {
   font-size: 0.5625rem;
-  color: var(--text-muted);
+  color: var(--fire);
   line-height: 1.35;
 }
 
@@ -1259,8 +1290,44 @@ body {
 
 .luck-detail-period {
   font-size: 0.6875rem;
-  color: var(--text-muted);
+  color: var(--fire);
   margin-left: auto;
+}
+
+.luck-detail-plain {
+  font-size: 0.8125rem;
+  line-height: 1.7;
+  color: var(--text);
+  margin-bottom: 8px;
+  font-weight: 400;
+}
+
+.luck-detail-timeline {
+  font-size: 0.75rem;
+  line-height: 1.65;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+  font-weight: 400;
+}
+
+.luck-detail-risk {
+  font-size: 0.75rem;
+  line-height: 1.55;
+  color: var(--fire);
+  margin-bottom: 8px;
+  padding: 8px 10px;
+  background: rgba(196, 132, 122, 0.08);
+  border-radius: 8px;
+  font-weight: 400;
+}
+
+.luck-detail-tech {
+  font-size: 0.75rem;
+  line-height: 1.55;
+  color: var(--text-muted);
+  margin: 0;
+  font-weight: 400;
+  letter-spacing: 0.02em;
 }
 
 .luck-detail-shishen {

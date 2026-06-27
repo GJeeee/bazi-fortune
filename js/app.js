@@ -214,6 +214,41 @@ function renderEnergyHints(hints) {
   );
 }
 
+function mergeAiIntoFortune(fortune, ai) {
+  if (!ai) return fortune;
+  const next = { ...fortune };
+  if (ai.hints && ai.hints.length) next.personalHint = ai.hints;
+  if (ai.layers && ai.layers.length && Array.isArray(fortune.luckExplanations)) {
+    const byName = Object.fromEntries(ai.layers.map((l) => [l.name, l]));
+    next.luckExplanations = fortune.luckExplanations.map((ex) => {
+      const hit = byName[ex.name];
+      if (!hit) return ex;
+      return {
+        ...ex,
+        plain: hit.plain || ex.plain,
+        timeline: hit.timeline || ex.timeline,
+        risk: hit.risk || ex.risk,
+        technical: hit.technical || ex.technical,
+      };
+    });
+  }
+  if (ai.personality) next.aiPersonality = ai.personality;
+  return next;
+}
+
+async function enhanceResultWithAi(ctx) {
+  const cfg = window.AI_FORTUNE_CONFIG;
+  if (!window.AiFortune || !cfg?.enabled || !cfg?.workerUrl) return ctx.fortune;
+
+  resultSection.classList.add('is-ai-loading');
+  try {
+    const ai = await AiFortune.enhance(ctx);
+    return mergeAiIntoFortune(ctx.fortune, ai);
+  } finally {
+    resultSection.classList.remove('is-ai-loading');
+  }
+}
+
 function renderPaipan(userBazi) {
   if (!window.Paipan) throw new Error('排盘模块未加载，请强制刷新页面');
 
@@ -294,11 +329,10 @@ function renderDayunLiunian(fortune, refDate) {
           <span class="luck-detail-pillar">${ex.pillar}</span>
           <span class="luck-detail-period">${ex.period}</span>
         </header>
-        <p class="luck-detail-shishen">十神：${ex.shishen}</p>
-        <p class="luck-detail-summary">${ex.summary}</p>
-        <ul class="luck-detail-list">
-          ${ex.details.map((d) => `<li>${d}</li>`).join('')}
-        </ul>
+        <p class="luck-detail-plain">${ex.plain || ''}</p>
+        ${ex.timeline ? `<p class="luck-detail-timeline">${ex.timeline}</p>` : ''}
+        ${ex.risk ? `<p class="luck-detail-risk">${ex.risk}</p>` : ''}
+        <p class="luck-detail-tech">${ex.technical || ''}</p>
       </article>`
       )
       .join('')
@@ -333,7 +367,7 @@ function renderDayunLiunian(fortune, refDate) {
   );
 }
 
-function showResult(rawBirth) {
+async function showResult(rawBirth) {
   const birth = normalizeBirth(rawBirth);
   const now = new Date();
   const ty = now.getFullYear();
@@ -346,7 +380,7 @@ function showResult(rawBirth) {
 
   const userBazi = Bazi.calculateBazi(birth.year, birth.month, birth.day, birth.hour);
   const todayBazi = Bazi.calculateBazi(ty, tm, td, 12);
-  const fortune = Fortune.getDailyFortune(userBazi, todayBazi, birth, birth.gender, now);
+  let fortune = Fortune.getDailyFortune(userBazi, todayBazi, birth, birth.gender, now);
 
   setText('today-date', formatTodayDate(now));
 
@@ -362,6 +396,20 @@ function showResult(rawBirth) {
   homeSection.classList.add('hidden');
   resultSection.classList.remove('hidden');
   window.scrollTo({ top: 0, behavior: 'smooth' });
+
+  fortune = await enhanceResultWithAi({
+    userBazi,
+    todayBazi,
+    birth,
+    fortune,
+    refDate: now,
+  });
+
+  renderEnergyHints(fortune.personalHint);
+  renderDayunLiunian(fortune, now);
+  if (fortune.aiPersonality) {
+    setText('personality-summary', fortune.aiPersonality);
+  }
 }
 
 function showHome() {
@@ -400,9 +448,9 @@ function fillForm(birth) {
   if (genderInput) genderInput.checked = true;
 }
 
-function runShowResult(birth) {
+async function runShowResult(birth) {
   try {
-    showResult(birth);
+    await showResult(birth);
   } catch (err) {
     console.error(err);
     const msg = err && err.message ? err.message : '未知错误';
