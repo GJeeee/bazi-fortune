@@ -15,8 +15,20 @@ const shareBtn = document.getElementById('share-btn');
 const fortuneStickBtn = document.getElementById('fortune-stick-btn');
 const fortuneStickCard = document.getElementById('fortune-stick-card');
 const stickMotionHint = document.getElementById('stick-motion-hint');
+const hepanForm = document.getElementById('hepan-form');
+const hepanHourSelect = document.getElementById('hepan-hour');
+const hepanFormError = document.getElementById('hepan-form-error');
+const hepanShareBtn = document.getElementById('hepan-share-btn');
+const hepanResetBtn = document.getElementById('hepan-reset-btn');
+const hepanEntryCard = document.getElementById('hepan-entry-card');
+const hepanInputBack = document.getElementById('hepan-input-back');
+const hepanResultBack = document.getElementById('hepan-result-back');
+const hepanInputSection = document.getElementById('hepan-input-section');
+const hepanResultSection = document.getElementById('hepan-result-section');
 
 let lastResultCtx = null;
+let lastHepanResult = null;
+let lastShareMode = 'daily';
 let activeLuckTab = 'liuri';
 let stickController = null;
 
@@ -383,7 +395,15 @@ function setActiveLuckTab(tabKey) {
 function renderResultHero(userBazi, fortune) {
   const dm = userBazi.day.gan;
   const dmWx = Bazi.getWuxingGan(dm);
-  setText('day-master-hero', `${dm}${dmWx}`);
+  const label = `${dm}${dmWx}`;
+  if (window.WuxingIcon) {
+    setHtml(
+      'day-master-hero',
+      `<span class="result-daymaster-inner" data-wuxing="${wxAttr(dmWx)}">${WuxingIcon.iconHtml(dmWx, 'wx-icon--hero')}<span class="result-daymaster-text">${label}</span></span>`
+    );
+  } else {
+    setText('day-master-hero', label);
+  }
   setText('personality-keywords', buildPersonalityKeywords(fortune, userBazi));
 }
 
@@ -392,6 +412,13 @@ function shishenTagHtml(name, wx, isDayMaster) {
   const cls = isDayMaster ? 'paipan-ss-tag is-daymaster' : 'paipan-ss-tag';
   const wxAttrStr = wx ? ` data-wuxing="${wxAttr(wx)}"` : '';
   return `<span class="${cls}"${wxAttrStr}>${escapeHtml(name)}</span>`;
+}
+
+function gzCharHtml(char, wx) {
+  if (window.WuxingIcon) {
+    return WuxingIcon.charWithIcon(char, wx, 'wx-icon--gz');
+  }
+  return char;
 }
 
 function renderPaipan(userBazi) {
@@ -409,8 +436,8 @@ function renderPaipan(userBazi) {
       <div class="paipan-compact-col">
         <span class="paipan-compact-label">${col.label.replace('柱', '')}</span>
         <div class="paipan-compact-block">
-          <span class="paipan-compact-gz" data-wuxing="${wxAttr(col.ganWx)}">${col.gan}</span>
-          <span class="paipan-compact-gz" data-wuxing="${wxAttr(col.zhiWx)}">${col.zhi}</span>
+          <span class="paipan-compact-gz" data-wuxing="${wxAttr(col.ganWx)}">${gzCharHtml(col.gan, col.ganWx)}</span>
+          <span class="paipan-compact-gz" data-wuxing="${wxAttr(col.zhiWx)}">${gzCharHtml(col.zhi, col.zhiWx)}</span>
           ${shishenTagHtml(isDay ? '日主' : col.zhiShishen, isDay ? col.ganWx : zhiGanWx, isDay)}
         </div>
       </div>`;
@@ -443,6 +470,13 @@ function renderResultPage(fortune, userBazi, refDate) {
 
 async function handleShareReport() {
   if (!lastResultCtx) return;
+  lastShareMode = 'daily';
+  if (window.SharePoster) {
+    const sheetTitle = document.getElementById('share-sheet-title');
+    if (sheetTitle) sheetTitle.textContent = '分享日签';
+    SharePoster.open();
+    return;
+  }
   const dm = lastResultCtx.userBazi.day.gan;
   const wx = Bazi.getWuxingGan(dm);
   const text = `我的能量报告 · ${dm}${wx}日主\n${buildPersonalityKeywords(lastResultCtx.fortune, lastResultCtx.userBazi)}`;
@@ -460,6 +494,173 @@ async function handleShareReport() {
     // 用户取消分享
   }
   alert(text);
+}
+
+function initHepanHourSelect() {
+  if (!hepanHourSelect) return;
+  const hourValues = [23, 1, 3, 5, 7, 9, 11, 13, 15, 17, 19, 21];
+  hepanHourSelect.innerHTML = '';
+  const unknownOpt = document.createElement('option');
+  unknownOpt.value = HOUR_UNKNOWN;
+  unknownOpt.textContent = '不清楚';
+  hepanHourSelect.appendChild(unknownOpt);
+  Bazi.HOUR_LABELS.forEach((label, i) => {
+    const opt = document.createElement('option');
+    opt.value = String(hourValues[i]);
+    opt.textContent = label;
+    hepanHourSelect.appendChild(opt);
+  });
+  hepanHourSelect.value = HOUR_UNKNOWN;
+}
+
+function showHepanError(message) {
+  if (!hepanFormError) return;
+  hepanFormError.textContent = message;
+  hepanFormError.classList.remove('hidden');
+}
+
+function clearHepanError() {
+  if (!hepanFormError) return;
+  hepanFormError.textContent = '';
+  hepanFormError.classList.add('hidden');
+}
+
+function readHepanForm() {
+  const nickname = (document.getElementById('hepan-nickname')?.value || '').trim();
+  if (!nickname) {
+    showHepanError('请填写对方昵称');
+    document.getElementById('hepan-nickname')?.focus();
+    return null;
+  }
+  const relationInput = hepanForm?.querySelector('input[name="hepan-relation"]:checked');
+  const relation = relationInput ? relationInput.value : 'romance';
+  const hourVal = hepanHourSelect?.value || HOUR_UNKNOWN;
+  const birth = normalizeBirth({
+    year: document.getElementById('hepan-year')?.value,
+    month: document.getElementById('hepan-month')?.value,
+    day: document.getElementById('hepan-day')?.value,
+    hour: hourVal === HOUR_UNKNOWN ? DEFAULT_HOUR : hourVal,
+    hourUnknown: hourVal === HOUR_UNKNOWN,
+    gender: 'male',
+  });
+  if (!birth.year || birth.year < 1920 || birth.year > 2030) {
+    showHepanError('请填写对方出生年份（1920–2030）');
+    return null;
+  }
+  if (!birth.month || birth.month < 1 || birth.month > 12) {
+    showHepanError('请填写对方出生月份');
+    return null;
+  }
+  if (!birth.day || birth.day < 1 || birth.day > 31) {
+    showHepanError('请填写对方出生日期');
+    return null;
+  }
+  clearHepanError();
+  return { nickname, relation, birth };
+}
+
+function renderHepanDualBars(result) {
+  const order = ['木', '火', '土', '金', '水'];
+  const meName = '我';
+  const partnerName = result.partnerName.length > 4 ? `${result.partnerName.slice(0, 4)}…` : result.partnerName;
+  return `${order
+    .map(
+      (wx) => `
+    <div class="hepan-dual-row">
+      <span class="hepan-dual-label">${wx}</span>
+      <div class="hepan-dual-track" title="${meName}">
+        <div class="hepan-dual-fill is-user" data-wuxing="${wx}" style="width:${result.userPercents[wx]}%"></div>
+      </div>
+      <div class="hepan-dual-track" title="${escapeHtml(partnerName)}">
+        <div class="hepan-dual-fill is-partner" data-wuxing="${wx}" style="width:${result.partnerPercents[wx]}%"></div>
+      </div>
+    </div>`
+    )
+    .join('')}
+    <div class="hepan-dual-legend">
+      <span class="leg-me">${escapeHtml(meName)}</span>
+      <span class="leg-partner">${escapeHtml(partnerName)}</span>
+    </div>`;
+}
+
+function renderHepanResult(result) {
+  lastHepanResult = result;
+  setText('hepan-score-num', String(result.score));
+  setText('hepan-score-level', result.level);
+  setText('hepan-score-tagline', result.tagline);
+  setText(
+    'hepan-pair-label',
+    `${result.relationLabel} · ${result.userLabel} × ${result.partnerLabel}`
+  );
+  setText('hepan-wx-relation', result.wxRelation.label);
+  setHtml('hepan-dual-bars', renderHepanDualBars(result));
+  if (result.narrative) {
+    setText('hepan-narrative-portrait', result.narrative.portrait);
+    setText('hepan-narrative-metaphor', result.narrative.metaphor);
+    setText('hepan-narrative-tip', result.narrative.tip);
+  }
+}
+
+function resetHepanForm() {
+  lastHepanResult = null;
+  lastShareMode = 'daily';
+  clearHepanError();
+  if (hepanForm) hepanForm.reset();
+  if (hepanHourSelect) hepanHourSelect.value = HOUR_UNKNOWN;
+  const romance = hepanForm?.querySelector('input[name="hepan-relation"][value="romance"]');
+  if (romance) romance.checked = true;
+}
+
+function handleRouteChange(route) {
+  if (route === '/report' && !lastResultCtx) {
+    AppRouter.navigate('/', { replace: true });
+    return;
+  }
+  if (route === '/compatibility-input' && !lastResultCtx) {
+    AppRouter.navigate('/', { replace: true });
+    return;
+  }
+  if (route === '/compatibility-result') {
+    if (!lastHepanResult) {
+      AppRouter.navigate(lastResultCtx ? '/compatibility-input' : '/', { replace: true });
+      return;
+    }
+    if (stickController) stickController.reset();
+  }
+}
+
+function goToHepanInput() {
+  if (!lastResultCtx) return;
+  AppRouter.navigate('/compatibility-input');
+}
+
+function handleHepanSubmit(e) {
+  e.preventDefault();
+  if (!lastResultCtx || !window.Hepan) return;
+  const input = readHepanForm();
+  if (!input) return;
+  const partnerBazi = Bazi.calculateBazi(
+    input.birth.year,
+    input.birth.month,
+    input.birth.day,
+    input.birth.hour
+  );
+  const result = Hepan.calculate(
+    lastResultCtx.userBazi,
+    partnerBazi,
+    input.relation,
+    input.nickname
+  );
+  renderHepanResult(result);
+  AppRouter.navigate('/compatibility-result');
+}
+
+function handleHepanShare() {
+  if (!lastHepanResult || !window.SharePoster) return;
+  lastShareMode = 'hepan';
+  const sheetTitle = document.getElementById('share-sheet-title');
+  if (sheetTitle) sheetTitle.textContent = '分享合盘';
+  SharePoster.open();
 }
 
 function mergeAiIntoFortune(fortune, ai) {
@@ -534,12 +735,10 @@ async function showResult(rawBirth) {
   setActiveLuckTab('liuri');
   renderResultPage(fortune, userBazi, now);
 
-  homeSection.classList.add('hidden');
-  resultSection.classList.remove('hidden');
-  window.scrollTo({ top: 0, behavior: 'smooth' });
-
   lastResultCtx = { userBazi, todayBazi, birth, fortune, refDate: now };
+  resetHepanForm();
   if (stickController) stickController.reset();
+  AppRouter.navigate('/report', { replace: true });
 
   fortune = await enhanceResultWithAi({
     userBazi,
@@ -554,11 +753,9 @@ async function showResult(rawBirth) {
 }
 
 function showHome() {
-  resultSection.classList.add('hidden');
-  homeSection.classList.remove('hidden');
+  AppRouter.navigate('/', { replace: true });
   renderTodayHome();
   clearFormError();
-  window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
 function saveBirth(birth) {
@@ -628,7 +825,12 @@ function initApp() {
   }
 
   initHourSelect();
+  initHepanHourSelect();
   renderTodayHome();
+
+  if (window.AppRouter) {
+    AppRouter.start(handleRouteChange);
+  }
 
   submitBtn.addEventListener('click', handleSubmit);
   form.addEventListener('submit', (e) => {
@@ -638,6 +840,35 @@ function initApp() {
   editBtn.addEventListener('click', showHome);
   if (editBtnBottom) editBtnBottom.addEventListener('click', showHome);
   if (shareBtn) shareBtn.addEventListener('click', handleShareReport);
+
+  if (window.SharePoster) {
+    SharePoster.bind({
+      getCtx: () => {
+        if (lastShareMode === 'hepan' && lastHepanResult) {
+          return { mode: 'hepan', hepan: lastHepanResult, refDate: new Date() };
+        }
+        return lastResultCtx ? { mode: 'daily', ...lastResultCtx } : null;
+      },
+    });
+  }
+
+  if (hepanForm) {
+    hepanForm.addEventListener('submit', handleHepanSubmit);
+  }
+  if (hepanEntryCard) hepanEntryCard.addEventListener('click', goToHepanInput);
+  if (hepanInputBack) {
+    hepanInputBack.addEventListener('click', () => AppRouter.navigate('/report'));
+  }
+  if (hepanResultBack) {
+    hepanResultBack.addEventListener('click', () => AppRouter.navigate('/report'));
+  }
+  if (hepanShareBtn) hepanShareBtn.addEventListener('click', handleHepanShare);
+  if (hepanResetBtn) {
+    hepanResetBtn.addEventListener('click', () => {
+      resetHepanForm();
+      AppRouter.navigate('/compatibility-input');
+    });
+  }
 
   document.querySelectorAll('.result-tab').forEach((btn) => {
     btn.addEventListener('click', () => {
@@ -656,7 +887,8 @@ function initApp() {
       msgEl: $('fortune-stick-msg'),
       hintEl: stickMotionHint,
       getCtx: () => lastResultCtx,
-      isActive: () => !resultSection.classList.contains('hidden'),
+      isActive: () =>
+        hepanResultSection && !hepanResultSection.classList.contains('hidden'),
     });
   }
   quickBtn.addEventListener('click', () => {
