@@ -223,12 +223,14 @@ function mergeAiIntoFortune(fortune, ai) {
     next.luckExplanations = fortune.luckExplanations.map((ex) => {
       const hit = byName[ex.name];
       if (!hit) return ex;
+      const aiRisk = typeof hit.risk === 'string' ? hit.risk.trim() : '';
       return {
         ...ex,
         plain: hit.plain || ex.plain,
         timeline: hit.timeline || ex.timeline,
-        risk: hit.risk || ex.risk,
+        risk: aiRisk || ex.risk,
         technical: hit.technical || ex.technical,
+        riskFromAi: Boolean(aiRisk),
       };
     });
   }
@@ -280,7 +282,8 @@ function renderPaipan(userBazi) {
   setText('personality-summary', Paipan.buildPersonalitySummary(userBazi));
 }
 
-function renderDayunLiunian(fortune, refDate) {
+function renderDayunLiunian(fortune, refDate, options = {}) {
+  const { showRisk = true } = options;
   const { dayunInfo, liunian, liuyue, liuri, luckExplanations } = fortune;
   const now = refDate || new Date();
   const ty = now.getFullYear();
@@ -331,7 +334,7 @@ function renderDayunLiunian(fortune, refDate) {
         </header>
         <p class="luck-detail-plain">${ex.plain || ''}</p>
         ${ex.timeline ? `<p class="luck-detail-timeline">${ex.timeline}</p>` : ''}
-        ${ex.risk ? `<p class="luck-detail-risk">${ex.risk}</p>` : ''}
+        ${showRisk && ex.risk ? `<p class="luck-detail-risk">${ex.risk}</p>` : ''}
         <p class="luck-detail-tech">${ex.technical || ''}</p>
       </article>`
       )
@@ -391,7 +394,8 @@ async function showResult(rawBirth) {
   renderHpBars(fortune.todayEnergy);
   renderEnergyHints(fortune.personalHint);
   renderPaipan(userBazi);
-  renderDayunLiunian(fortune, now);
+  const aiEnabled = Boolean(window.AI_FORTUNE_CONFIG?.enabled && window.AI_FORTUNE_CONFIG?.workerUrl);
+  renderDayunLiunian(fortune, now, { showRisk: !aiEnabled });
 
   homeSection.classList.add('hidden');
   resultSection.classList.remove('hidden');

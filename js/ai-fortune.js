@@ -30,6 +30,23 @@
       period: ex.period,
     }));
 
+    const layerRiskSignals = (fortune.analysis?.layers || []).map((l) => ({
+      name: l.layerName,
+      pillar: l.pillar,
+      shishen: l.shishen,
+      ganRel: l.ganRel,
+      zhiRel: l.zhiRel,
+      effects: (l.effects || []).slice(0, 6),
+    }));
+
+    const localLuck = (fortune.luckExplanations || []).map((ex) => ({
+      name: ex.name,
+      pillar: ex.pillar,
+      period: ex.period,
+      plain: ex.plain,
+      timeline: ex.timeline,
+      technical: ex.technical,
+    }));
     return {
       date: refDate.toISOString().slice(0, 10),
       weekday: refDate.getDay(),
@@ -44,8 +61,11 @@
       dayGanRelation: fortune.analysis?.dayGanRel,
       layers,
       luckMeta,
+      layerRiskSignals,
+      riskRewriteNote:
+        '请为每一层单独写 risk 提醒句。禁止套用通用套话，禁止四层 risk 相同或仅换一两个词。必须结合 layerRiskSignals 中的 pillar、shishen、ganRel、zhiRel、effects 写差异化内容。',
       localHints: fortune.personalHint,
-      localLuck: fortune.luckExplanations,
+      localLuck,
       localPersonality: window.Paipan
         ? Paipan.buildPersonalitySummary(userBazi)
         : '',
