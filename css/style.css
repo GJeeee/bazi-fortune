@@ -470,11 +470,18 @@ body {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 8px 16px 4px;
-  border: none;
-  background: transparent;
+  padding: 10px 20px 8px;
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  background: var(--card);
+  color: var(--text-muted);
   cursor: pointer;
+  transition: background 0.2s ease;
   -webkit-tap-highlight-color: transparent;
+}
+
+.btn-fortune-stick:active {
+  background: var(--accent-soft);
 }
 
 .btn-fortune-stick:disabled {
@@ -484,20 +491,20 @@ body {
 
 .fortune-stick-stage {
   position: relative;
-  width: 72px;
-  height: 80px;
+  width: 52px;
+  height: 52px;
 }
 
 .fortune-stick-pop {
   position: absolute;
   left: 50%;
-  bottom: 34px;
-  width: 5px;
+  bottom: 22px;
+  width: 2px;
   height: 0;
-  margin-left: -2.5px;
-  background: linear-gradient(180deg, #f0e6d0 0%, #c9a86c 100%);
-  border-radius: 2px 2px 0 0;
-  box-shadow: 0 0 0 1px rgba(139, 94, 60, 0.25);
+  margin-left: -1px;
+  background: currentColor;
+  color: var(--accent);
+  border-radius: 1px 1px 0 0;
   opacity: 0;
   z-index: 2;
   pointer-events: none;
@@ -506,18 +513,20 @@ body {
 .fortune-stick-pop::after {
   content: '';
   position: absolute;
-  top: -5px;
+  top: -4px;
   left: 50%;
   transform: translateX(-50%);
-  width: 7px;
-  height: 7px;
+  width: 4px;
+  height: 4px;
   border-radius: 50%;
-  background: #b8860b;
+  background: currentColor;
+  opacity: 0.45;
 }
 
 .fortune-stick-icon {
-  width: 72px;
-  height: 80px;
+  width: 52px;
+  height: 52px;
+  color: var(--accent);
   transform-origin: center bottom;
   animation: bucket-idle 2.6s ease-in-out infinite;
 }
@@ -552,17 +561,17 @@ body {
   0% {
     height: 0;
     opacity: 0;
-    transform: translateY(6px);
+    transform: translateY(4px);
   }
   35% {
-    height: 38px;
+    height: 22px;
     opacity: 1;
     transform: translateY(0);
   }
   100% {
-    height: 44px;
+    height: 26px;
     opacity: 1;
-    transform: translateY(-10px) rotate(-5deg);
+    transform: translateY(-6px) rotate(-4deg);
   }
 }
 
