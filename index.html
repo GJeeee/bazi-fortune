@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1">
   <meta name="theme-color" content="#f9faf8">
   <title>老黄历</title>
-  <link rel="stylesheet" href="css/style.css?v=28">
+  <link rel="stylesheet" href="css/style.css?v=29">
 </head>
 <body>
   <div class="app">
@@ -41,12 +41,14 @@
           </div>
           <p class="form-error hidden" id="form-error" role="alert"></p>
           <button type="button" class="btn-muyu" id="submit-btn" aria-label="点击查看今日剧本">
-            <svg class="muyu-icon" viewBox="0 0 48 48" aria-hidden="true">
-              <ellipse cx="24" cy="26" rx="16" ry="11" fill="none" stroke="currentColor" stroke-width="1.2"/>
-              <path d="M12 26 Q24 18 36 26" fill="none" stroke="currentColor" stroke-width="1"/>
-              <line x1="24" y1="15" x2="24" y2="37" stroke="currentColor" stroke-width="0.8" opacity="0.5"/>
-              <circle cx="24" cy="12" r="2" fill="currentColor" opacity="0.35"/>
-            </svg>
+            <span class="muyu-wrap">
+              <svg class="muyu-icon" viewBox="0 0 48 48" aria-hidden="true">
+                <ellipse cx="24" cy="26" rx="16" ry="11" fill="none" stroke="currentColor" stroke-width="1.2"/>
+                <path d="M12 26 Q24 18 36 26" fill="none" stroke="currentColor" stroke-width="1"/>
+                <line x1="24" y1="15" x2="24" y2="37" stroke="currentColor" stroke-width="0.8" opacity="0.5"/>
+                <circle cx="24" cy="12" r="2" fill="currentColor" opacity="0.35"/>
+              </svg>
+            </span>
             <span class="muyu-label">点击查看今日剧本</span>
           </button>
           <button type="button" class="btn-link hidden" id="quick-btn">查看已保存</button>
@@ -123,7 +125,7 @@
   <script src="js/fortune.js?v=28"></script>
   <script src="js/ai-fortune.js?v=28"></script>
   <script src="js/fortune-stick.js?v=26"></script>
-  <script src="js/muyu.js?v=22"></script>
+  <script src="js/muyu.js?v=23"></script>
   <script src="js/app.js?v=28"></script>
 </body>
 </html>

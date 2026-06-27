@@ -28,71 +28,100 @@
       const ctx = getCtx();
       const t = ctx.currentTime;
 
-      // 杆击木：短促撞击（偏中低频，少金属感）
-      const knock = makeNoiseBurst(ctx, 0.035, 0.005);
+      // 清脆敲击：短促高频点击
+      const click = makeNoiseBurst(ctx, 0.018, 0.003);
+      const clickFilter = ctx.createBiquadFilter();
+      clickFilter.type = 'bandpass';
+      clickFilter.frequency.setValueAtTime(2800, t);
+      clickFilter.frequency.exponentialRampToValueAtTime(1600, t + 0.012);
+      clickFilter.Q.value = 1.1;
+
+      const clickGain = ctx.createGain();
+      clickGain.gain.setValueAtTime(0.001, t);
+      clickGain.gain.exponentialRampToValueAtTime(0.55, t + 0.001);
+      clickGain.gain.exponentialRampToValueAtTime(0.001, t + 0.022);
+
+      click.connect(clickFilter);
+      clickFilter.connect(clickGain);
+      clickGain.connect(ctx.destination);
+      click.start(t);
+      click.stop(t + 0.025);
+
+      // 木鱼主体：中频撞击
+      const knock = makeNoiseBurst(ctx, 0.03, 0.006);
       const knockFilter = ctx.createBiquadFilter();
       knockFilter.type = 'bandpass';
-      knockFilter.frequency.setValueAtTime(680, t);
-      knockFilter.frequency.exponentialRampToValueAtTime(320, t + 0.02);
-      knockFilter.Q.value = 0.9;
+      knockFilter.frequency.setValueAtTime(920, t);
+      knockFilter.frequency.exponentialRampToValueAtTime(520, t + 0.018);
+      knockFilter.Q.value = 0.95;
 
       const knockGain = ctx.createGain();
       knockGain.gain.setValueAtTime(0.001, t);
-      knockGain.gain.exponentialRampToValueAtTime(0.62, t + 0.0015);
-      knockGain.gain.exponentialRampToValueAtTime(0.001, t + 0.04);
+      knockGain.gain.exponentialRampToValueAtTime(0.48, t + 0.0012);
+      knockGain.gain.exponentialRampToValueAtTime(0.001, t + 0.035);
 
       knock.connect(knockFilter);
       knockFilter.connect(knockGain);
       knockGain.connect(ctx.destination);
       knock.start(t);
-      knock.stop(t + 0.045);
+      knock.stop(t + 0.04);
 
-      // 木腔闷响：滤波噪声（非谐波，更像实心木）
-      const body = makeNoiseBurst(ctx, 0.14, 0.028);
+      // 木腔余韵
+      const body = makeNoiseBurst(ctx, 0.1, 0.022);
       const bodyFilter = ctx.createBiquadFilter();
       bodyFilter.type = 'lowpass';
-      bodyFilter.frequency.setValueAtTime(420, t);
-      bodyFilter.frequency.exponentialRampToValueAtTime(160, t + 0.1);
+      bodyFilter.frequency.setValueAtTime(480, t);
+      bodyFilter.frequency.exponentialRampToValueAtTime(220, t + 0.08);
 
       const bodyGain = ctx.createGain();
       bodyGain.gain.setValueAtTime(0.001, t);
-      bodyGain.gain.exponentialRampToValueAtTime(0.42, t + 0.003);
-      bodyGain.gain.exponentialRampToValueAtTime(0.001, t + 0.16);
+      bodyGain.gain.exponentialRampToValueAtTime(0.22, t + 0.002);
+      bodyGain.gain.exponentialRampToValueAtTime(0.001, t + 0.12);
 
       body.connect(bodyFilter);
       bodyFilter.connect(bodyGain);
       bodyGain.connect(ctx.destination);
       body.start(t);
-      body.stop(t + 0.17);
+      body.stop(t + 0.13);
 
-      // 轻回弹：第二下更弱、更闷
-      const t2 = t + 0.048;
-      const knock2 = makeNoiseBurst(ctx, 0.022, 0.004);
-      const kf2 = ctx.createBiquadFilter();
-      kf2.type = 'bandpass';
-      kf2.frequency.value = 480;
-      kf2.Q.value = 0.85;
-      const kg2 = ctx.createGain();
-      kg2.gain.setValueAtTime(0.001, t2);
-      kg2.gain.exponentialRampToValueAtTime(0.18, t2 + 0.0015);
-      kg2.gain.exponentialRampToValueAtTime(0.001, t2 + 0.028);
-      knock2.connect(kf2);
-      kf2.connect(kg2);
-      kg2.connect(ctx.destination);
-      knock2.start(t2);
-      knock2.stop(t2 + 0.032);
+      // 清脆泛音
+      const ping = ctx.createOscillator();
+      ping.type = 'sine';
+      ping.frequency.setValueAtTime(1560, t);
+      ping.frequency.exponentialRampToValueAtTime(1180, t + 0.03);
+      const pingGain = ctx.createGain();
+      pingGain.gain.setValueAtTime(0.001, t);
+      pingGain.gain.exponentialRampToValueAtTime(0.12, t + 0.001);
+      pingGain.gain.exponentialRampToValueAtTime(0.001, t + 0.045);
+      ping.connect(pingGain);
+      pingGain.connect(ctx.destination);
+      ping.start(t);
+      ping.stop(t + 0.05);
     } catch {
       // 静音或不支持 Web Audio 时忽略
     }
   }
 
+  function spawnMeritFloat(btn) {
+    const wrap = btn.querySelector('.muyu-wrap');
+    if (!wrap) return;
+
+    const el = document.createElement('span');
+    el.className = 'muyu-merit-float';
+    el.textContent = '功德 +1';
+    el.setAttribute('aria-hidden', 'true');
+    wrap.appendChild(el);
+    el.addEventListener('animationend', () => el.remove(), { once: true });
+  }
+
   function tapMuyu(btn) {
     if (!btn) return;
     playMuyuSound();
+    spawnMeritFloat(btn);
     btn.classList.remove('is-tapping');
     void btn.offsetWidth;
     btn.classList.add('is-tapping');
   }
 
-  window.Muyu = { playMuyuSound, tapMuyu };
+  window.Muyu = { playMuyuSound, tapMuyu, spawnMeritFloat };
 })();

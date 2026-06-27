@@ -395,11 +395,51 @@ body {
   background: var(--accent-soft);
 }
 
+.muyu-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 52px;
+  height: 52px;
+}
+
 .muyu-icon {
   width: 52px;
   height: 52px;
   color: var(--accent);
   transform-origin: center bottom;
+}
+
+.muyu-merit-float {
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% - 4px);
+  transform: translateX(-50%);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: #c9a227;
+  letter-spacing: 0.08em;
+  white-space: nowrap;
+  pointer-events: none;
+  z-index: 2;
+  text-shadow: 0 1px 3px rgba(201, 162, 39, 0.45);
+  animation: muyu-merit-rise 1s ease-out forwards;
+}
+
+@keyframes muyu-merit-rise {
+  0% {
+    opacity: 0;
+    transform: translateX(-50%) translateY(8px) scale(0.88);
+  }
+  18% {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(-50%) translateY(-32px) scale(1.04);
+  }
 }
 
 .btn-muyu.is-tapping .muyu-icon {
