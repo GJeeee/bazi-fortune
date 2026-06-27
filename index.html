@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1">
   <meta name="theme-color" content="#f9faf8">
   <title>老黄历</title>
-  <link rel="stylesheet" href="css/style.css?v=22">
+  <link rel="stylesheet" href="css/style.css?v=24">
 </head>
 <body>
   <div class="app">
@@ -85,6 +85,37 @@
 
       <button type="button" class="btn-secondary result-back" id="edit-btn">返回首页</button>
 
+      <section class="fortune-stick-section" id="fortune-stick-section">
+        <p class="fortune-stick-hint">摇一摇，求根签</p>
+        <button type="button" class="btn-fortune-stick" id="fortune-stick-btn" aria-label="摇签求签">
+          <div class="fortune-stick-stage">
+            <div class="fortune-stick-pop" aria-hidden="true"></div>
+            <svg class="fortune-stick-icon" viewBox="0 0 64 72" aria-hidden="true">
+              <defs>
+                <linearGradient id="bucket-body" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stop-color="#c4956a"/>
+                  <stop offset="100%" stop-color="#8b5e3c"/>
+                </linearGradient>
+              </defs>
+              <ellipse cx="32" cy="18" rx="14" ry="4" fill="#d4a574" opacity="0.5"/>
+              <rect x="14" y="16" width="36" height="38" rx="6" fill="url(#bucket-body)"/>
+              <ellipse cx="32" cy="16" rx="16" ry="5" fill="#d4a574"/>
+              <ellipse cx="32" cy="54" rx="18" ry="5" fill="#7a4f32"/>
+              <line x1="22" y1="20" x2="24" y2="8" stroke="#e8dcc8" stroke-width="2.2" stroke-linecap="round" opacity="0.85"/>
+              <line x1="28" y1="19" x2="29" y2="6" stroke="#e8dcc8" stroke-width="2" stroke-linecap="round" opacity="0.7"/>
+              <line x1="34" y1="19" x2="35" y2="7" stroke="#e8dcc8" stroke-width="2.2" stroke-linecap="round" opacity="0.8"/>
+              <line x1="40" y1="20" x2="41" y2="9" stroke="#e8dcc8" stroke-width="2" stroke-linecap="round" opacity="0.75"/>
+              <line x1="46" y1="21" x2="47" y2="11" stroke="#e8dcc8" stroke-width="1.8" stroke-linecap="round" opacity="0.65"/>
+              <path d="M12 28 Q32 24 52 28" fill="none" stroke="#6b4423" stroke-width="1" opacity="0.35"/>
+            </svg>
+          </div>
+        </button>
+        <div class="fortune-stick-card hidden" id="fortune-stick-card">
+          <p class="fortune-stick-no" id="fortune-stick-no"></p>
+          <p class="fortune-stick-msg" id="fortune-stick-msg"></p>
+        </div>
+      </section>
+
       <footer class="footer result-footer">
         <p>AI说说而已，制作人免责。</p>
       </footer>
@@ -97,7 +128,8 @@
   <script src="js/paipan.js?v=22"></script>
   <script src="js/fortune.js?v=23"></script>
   <script src="js/ai-fortune.js?v=23"></script>
+  <script src="js/fortune-stick.js?v=24"></script>
   <script src="js/muyu.js?v=22"></script>
-  <script src="js/app.js?v=23"></script>
+  <script src="js/app.js?v=24"></script>
 </body>
 </html>

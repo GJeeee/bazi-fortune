@@ -32,6 +32,14 @@ const SYSTEM_PROMPT = `你是八字运势解读助手。根据用户提供的排
 
 禁止：免责声明、「仅供参考」、空泛的「整体平稳」连用、编造 payload 中不存在的信息。`;
 
+const FORTUNE_STICK_PROMPT = `你是求签解签助手。根据案主八字喜忌、五行强弱、今日能量，写一句案主当下最想听到的话。
+
+硬性要求：
+1. 结合 baziPreference（喜用五行 favoredElements、需补 needElement、身强/弱 strength）与 todayEnergy、score、dayGanRelation 推断心理需求。
+2. 语气温暖、具体、像懂你的朋友，2–3 句，40–80 字，禁止术语堆砌。
+3. 返回纯 JSON：{ "stickNo": "第N签", "message": "..." }，N 用 payload.stickNo。
+4. 禁止：免责声明、「仅供参考」、空泛鸡汤、与八字数据无关的套话。`;
+
 const CORS = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
@@ -61,10 +69,15 @@ export default {
       return json({ error: 'Invalid JSON body' }, 400);
     }
 
-    const { payload } = body;
+    const { payload, mode } = body;
     if (!payload || typeof payload !== 'object') {
       return json({ error: 'Missing payload' }, 400);
     }
+
+    const isStick = mode === 'fortuneStick' || payload.mode === 'fortuneStick';
+    const systemPrompt = isStick ? FORTUNE_STICK_PROMPT : SYSTEM_PROMPT;
+    const maxTokens = isStick ? 400 : 2600;
+    const temperature = isStick ? 0.95 : 0.92;
 
     try {
       const upstream = await fetch('https://api.deepseek.com/chat/completions', {
@@ -76,11 +89,11 @@ export default {
         body: JSON.stringify({
           model: 'deepseek-chat',
           messages: [
-            { role: 'system', content: SYSTEM_PROMPT },
+            { role: 'system', content: systemPrompt },
             { role: 'user', content: JSON.stringify(payload) },
           ],
-          temperature: 0.92,
-          max_tokens: 2600,
+          temperature,
+          max_tokens: maxTokens,
           response_format: { type: 'json_object' },
         }),
       });

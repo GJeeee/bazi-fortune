@@ -10,6 +10,10 @@ const editBtn = document.getElementById('edit-btn');
 const submitBtn = document.getElementById('submit-btn');
 const quickBtn = document.getElementById('quick-btn');
 const formError = document.getElementById('form-error');
+const fortuneStickBtn = document.getElementById('fortune-stick-btn');
+const fortuneStickCard = document.getElementById('fortune-stick-card');
+
+let lastResultCtx = null;
 
 function $(id) {
   return document.getElementById(id);
@@ -401,6 +405,13 @@ async function showResult(rawBirth) {
   resultSection.classList.remove('hidden');
   window.scrollTo({ top: 0, behavior: 'smooth' });
 
+  lastResultCtx = { userBazi, todayBazi, birth, fortune, refDate: now };
+  if (fortuneStickBtn) {
+    fortuneStickBtn.classList.remove('is-shaking', 'stick-revealed');
+    fortuneStickBtn.disabled = false;
+  }
+  if (fortuneStickCard) fortuneStickCard.classList.add('hidden');
+
   fortune = await enhanceResultWithAi({
     userBazi,
     todayBazi,
@@ -414,6 +425,7 @@ async function showResult(rawBirth) {
   if (fortune.aiPersonality) {
     setText('personality-summary', fortune.aiPersonality);
   }
+  lastResultCtx = { userBazi, todayBazi, birth, fortune, refDate: now };
 }
 
 function showHome() {
@@ -499,6 +511,15 @@ function initApp() {
     handleSubmit();
   });
   editBtn.addEventListener('click', showHome);
+  if (window.FortuneStick && fortuneStickBtn && fortuneStickCard) {
+    FortuneStick.bind({
+      btn: fortuneStickBtn,
+      card: fortuneStickCard,
+      noEl: $('fortune-stick-no'),
+      msgEl: $('fortune-stick-msg'),
+      getCtx: () => lastResultCtx,
+    });
+  }
   quickBtn.addEventListener('click', () => {
     const saved = loadBirth();
     if (saved) {
