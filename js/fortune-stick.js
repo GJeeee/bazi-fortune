@@ -6,9 +6,11 @@
   const SHAKE_DURATION_MS = 720;
   const POP_DURATION_MS = 580;
   const COOLDOWN_MS = 3200;
+  const LONG_PRESS_MS = 3200;
   const MOTION_THRESHOLD = 14;
   const MOTION_HIT_COUNT = 4;
   const SHAKE_SOUND_SRC = 'audio/shake_sound.mp3';
+  const DROP_SOUND_SRC = 'audio/drop_click.mp3';
 
   function getConfig() {
     return window.AI_FORTUNE_CONFIG || { workerUrl: '', enabled: false };
@@ -215,6 +217,69 @@
     }
   }
 
+  function playDropClick() {
+    try {
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      const t = ctx.currentTime;
+
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(920, t);
+      osc.frequency.exponentialRampToValueAtTime(380, t + 0.045);
+      gain.gain.setValueAtTime(0.001, t);
+      gain.gain.exponentialRampToValueAtTime(0.22, t + 0.004);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.11);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start(t);
+      osc.stop(t + 0.12);
+
+      const click = ctx.createOscillator();
+      const clickGain = ctx.createGain();
+      click.type = 'triangle';
+      click.frequency.setValueAtTime(1800, t + 0.01);
+      clickGain.gain.setValueAtTime(0.001, t + 0.01);
+      clickGain.gain.exponentialRampToValueAtTime(0.08, t + 0.014);
+      clickGain.gain.exponentialRampToValueAtTime(0.001, t + 0.06);
+      click.connect(clickGain);
+      clickGain.connect(ctx.destination);
+      click.start(t + 0.01);
+      click.stop(t + 0.07);
+    } catch {
+      // ignore
+    }
+  }
+
+  function createDropSound() {
+    let audio = null;
+    let useFallback = true;
+
+    try {
+      audio = new Audio(DROP_SOUND_SRC);
+      audio.preload = 'auto';
+      audio.addEventListener('canplaythrough', () => {
+        useFallback = false;
+      }, { once: true });
+      audio.addEventListener('error', () => {
+        useFallback = true;
+      });
+    } catch {
+      useFallback = true;
+    }
+
+    return {
+      play() {
+        if (useFallback || !audio) {
+          playDropClick();
+          return;
+        }
+        audio.currentTime = 0;
+        audio.play().catch(() => playDropClick());
+      },
+    };
+  }
+
   function playFallbackShakeSound() {
     try {
       const ctx = new (window.AudioContext || window.webkitAudioContext)();
@@ -301,12 +366,17 @@
     if (!btn || !card || !getCtx) return null;
 
     const shakeSound = createShakeSound();
+    const dropSound = createDropSound();
     let busy = false;
     let cooldownUntil = 0;
     let motionEnabled = false;
     let lastAcc = { x: 0, y: 0, z: 0 };
     let motionHits = 0;
     let lastMotionAt = 0;
+    let holdTimer = null;
+    let holdStartedAt = 0;
+    let holding = false;
+    let holdVibrateTimer = null;
 
     function setHint(text, visible) {
       if (!hintEl) return;
@@ -314,20 +384,61 @@
       hintEl.classList.toggle('hidden', !visible || !text);
     }
 
+    function clearHoldState() {
+      holding = false;
+      holdStartedAt = 0;
+      if (holdTimer) {
+        clearTimeout(holdTimer);
+        holdTimer = null;
+      }
+      if (holdVibrateTimer) {
+        clearInterval(holdVibrateTimer);
+        holdVibrateTimer = null;
+      }
+      btn.classList.remove('is-holding');
+    }
+
+    function startHold() {
+      if (busy || Date.now() < cooldownUntil || holding) return;
+      holding = true;
+      holdStartedAt = Date.now();
+      btn.classList.add('is-holding');
+      setHint('继续按住，签文马上出来…', true);
+
+      if (navigator.vibrate) navigator.vibrate(8);
+      holdVibrateTimer = window.setInterval(() => {
+        if (navigator.vibrate) navigator.vibrate(6);
+      }, 420);
+
+      holdTimer = window.setTimeout(() => {
+        clearHoldState();
+        runShake('longpress');
+      }, LONG_PRESS_MS);
+    }
+
+    function cancelHold() {
+      if (!holding || busy) return;
+      const elapsed = Date.now() - holdStartedAt;
+      clearHoldState();
+      if (elapsed < LONG_PRESS_MS - 80) {
+        updateMotionHint();
+      }
+    }
+
     function updateMotionHint() {
       if (!window.DeviceMotionEvent) {
-        setHint('点击签筒即可求签', false);
+        setHint('长按签筒 3 秒 · 解压求签', true);
         return;
       }
       if (needsMotionPermission() && !motionEnabled) {
-        setHint('点击签筒开启摇一摇', true);
+        setHint('长按签筒 · 或点击开启摇一摇', true);
         return;
       }
       if (motionEnabled) {
-        setHint('轻摇手机即可求签', true);
+        setHint('长按签筒 · 或轻摇手机', true);
         return;
       }
-      setHint('点击或摇一摇求签', false);
+      setHint('长按签筒 3 秒 · 或轻摇手机', true);
     }
 
     async function enableMotion() {
@@ -386,11 +497,13 @@
       const ctx = getCtx();
       if (!ctx || !isActive()) return;
 
+      clearHoldState();
       busy = true;
       motionHits = 0;
       btn.disabled = true;
       resetVisual();
       btn.classList.add('is-shaking');
+      setHint('', false);
 
       if (navigator.vibrate) navigator.vibrate([12, 40, 12, 40, 18]);
       shakeSound.start();
@@ -403,6 +516,8 @@
       shakeSound.stop();
       btn.classList.remove('is-shaking');
       btn.classList.add('stick-revealed');
+      dropSound.play();
+      if (navigator.vibrate) navigator.vibrate(28);
 
       const result = await fetchPromise;
 
@@ -416,17 +531,38 @@
       cooldownUntil = Date.now() + COOLDOWN_MS;
       busy = false;
       btn.disabled = false;
+      updateMotionHint();
     }
 
-    async function onTap() {
+    async function onPointerDown(e) {
+      if (e.button !== undefined && e.button !== 0) return;
       if (needsMotionPermission() && !motionEnabled) {
         await enableMotion();
       } else if (!motionEnabled && window.DeviceMotionEvent) {
         await enableMotion();
       }
-      runShake('tap');
+      startHold();
     }
 
+    function onPointerUp() {
+      cancelHold();
+    }
+
+    async function onTap(e) {
+      if (holding || busy) {
+        e.preventDefault();
+        return;
+      }
+      if (needsMotionPermission() && !motionEnabled) {
+        e.preventDefault();
+        await enableMotion();
+      }
+    }
+
+    btn.addEventListener('pointerdown', onPointerDown);
+    btn.addEventListener('pointerup', onPointerUp);
+    btn.addEventListener('pointerleave', onPointerUp);
+    btn.addEventListener('pointercancel', onPointerUp);
     btn.addEventListener('click', onTap);
     updateMotionHint();
 
@@ -435,14 +571,20 @@
         busy = false;
         cooldownUntil = 0;
         motionHits = 0;
+        clearHoldState();
         shakeSound.stop();
         btn.disabled = false;
         resetVisual();
         updateMotionHint();
       },
       destroy() {
+        clearHoldState();
         shakeSound.stop();
         window.removeEventListener('devicemotion', onDeviceMotion);
+        btn.removeEventListener('pointerdown', onPointerDown);
+        btn.removeEventListener('pointerup', onPointerUp);
+        btn.removeEventListener('pointerleave', onPointerUp);
+        btn.removeEventListener('pointercancel', onPointerUp);
         btn.removeEventListener('click', onTap);
       },
     };

@@ -294,6 +294,22 @@ function buildLocalTabTitle(ex, tabKey, refDate, userBazi) {
   return `${ex?.pillar || '大运'} · 十年主旋律`;
 }
 
+function renderEnergyPrescriptionCard(tabKey, refDate, userBazi, ex) {
+  if (!window.EnergyPrescription) return '';
+  const rx = EnergyPrescription.build(tabKey, refDate, userBazi, ex);
+  return `
+    <div class="energy-prescription-card" data-wuxing="${wxAttr(rx.wx)}">
+      <div class="energy-prescription-head">
+        <span class="energy-prescription-icon" aria-hidden="true">
+          <svg viewBox="0 0 20 20" width="18" height="18"><path d="M10 2c-3 0-5 2.2-5 5.2 0 2.4 1.4 4.2 3.2 5.6L10 18l1.8-5.2C13.6 11.4 15 9.6 15 7.2 15 4.2 13 2 10 2z" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/></svg>
+        </span>
+        <span class="energy-prescription-title">${escapeHtml(rx.title)}</span>
+      </div>
+      <p class="energy-prescription-line energy-prescription-yi"><span class="energy-prescription-tag">宜</span>${escapeHtml(rx.yi)}</p>
+      <p class="energy-prescription-line energy-prescription-ji"><span class="energy-prescription-tag">忌</span>${escapeHtml(rx.ji)}</p>
+    </div>`;
+}
+
 function renderAdviceList(advice) {
   if (!advice) return '';
   const items = [
@@ -371,6 +387,7 @@ function renderLuckTabPanel(fortune, tabKey, refDate, userBazi) {
     <h3 class="luck-tab-title">${escapeHtml(title)}</h3>
     ${subtitle ? `<p class="luck-tab-subtitle">${escapeHtml(subtitle)}</p>` : ''}
     <div class="luck-tab-core">${escapeHtml(coreReview)}</div>
+    ${renderEnergyPrescriptionCard(tabKey, refDate, userBazi, ex)}
     ${renderAdviceList(advice)}
     ${
       showLifeNote
@@ -404,21 +421,122 @@ function renderResultHero(userBazi, fortune) {
   } else {
     setText('day-master-hero', label);
   }
+
+  const empathy =
+    window.EmpathyCopy?.build(userBazi, fortune?.aiPersonality) ||
+    '别人以为你很独立，但其实你也需要被好好理解。';
+  setHtml('personality-empathy', `<p class="result-empathy-text">${escapeHtml(empathy)}</p>`);
+
   setText('personality-keywords', buildPersonalityKeywords(fortune, userBazi));
 }
 
-function shishenTagHtml(name, wx, isDayMaster) {
-  if (!name) return '';
-  const cls = isDayMaster ? 'paipan-ss-tag is-daymaster' : 'paipan-ss-tag';
-  const wxAttrStr = wx ? ` data-wuxing="${wxAttr(wx)}"` : '';
-  return `<span class="${cls}"${wxAttrStr}>${escapeHtml(name)}</span>`;
+function ganShishenTopHtml(name, isDay) {
+  if (isDay) {
+    return `<span class="paipan-card-gan-ss is-daymaster">日主</span>`;
+  }
+  if (!name) {
+    return `<span class="paipan-card-gan-ss is-empty" aria-hidden="true">·</span>`;
+  }
+  return `<span class="paipan-card-gan-ss">${escapeHtml(name)}</span>`;
 }
 
-function gzCharHtml(char, wx) {
-  if (window.WuxingIcon) {
-    return WuxingIcon.charWithIcon(char, wx, 'wx-icon--gz');
-  }
-  return char;
+const ELEMENT_COLORS = {
+  木: '#4CAF50',
+  火: '#E53935',
+  土: '#8D6E63',
+  金: '#757575',
+  水: '#1E88E5',
+};
+
+function getWxForChar(char) {
+  if (!char || !window.Bazi) return null;
+  if (Bazi.getGanIndex(char) >= 0) return Bazi.getWuxingGan(char);
+  if (Bazi.getZhiIndex(char) >= 0) return Bazi.getWuxingZhi(char);
+  return null;
+}
+
+function getFiveElementColor(char) {
+  const wx = getWxForChar(char);
+  return wx ? ELEMENT_COLORS[wx] : '#4A5568';
+}
+
+function gzColoredHtml(char, sizeClass) {
+  const color = getFiveElementColor(char);
+  return `<span class="paipan-card-char ${sizeClass}" style="color:${color}">${char}</span>`;
+}
+
+function shishenPillHtml(name) {
+  if (!name) return '';
+  return `<span class="paipan-ss-pill">${escapeHtml(name)}</span>`;
+}
+
+function donutSlice(cx, cy, rOuter, rInner, start, end) {
+  const large = end - start > Math.PI ? 1 : 0;
+  const x1 = cx + rOuter * Math.cos(start);
+  const y1 = cy + rOuter * Math.sin(start);
+  const x2 = cx + rOuter * Math.cos(end);
+  const y2 = cy + rOuter * Math.sin(end);
+  const x3 = cx + rInner * Math.cos(end);
+  const y3 = cy + rInner * Math.sin(end);
+  const x4 = cx + rInner * Math.cos(start);
+  const y4 = cy + rInner * Math.sin(start);
+  return `M ${x1} ${y1} A ${rOuter} ${rOuter} 0 ${large} 1 ${x2} ${y2} L ${x3} ${y3} A ${rInner} ${rInner} 0 ${large} 0 ${x4} ${y4} Z`;
+}
+
+const WX_CHART_COLORS = {
+  木: '#A8C5A0',
+  火: '#D4A59A',
+  土: '#D9C9A8',
+  金: '#C4C4C4',
+  水: '#A8BED4',
+};
+
+function renderWuxingDonut(percents) {
+  const order = ['木', '火', '土', '金', '水'];
+  const cx = 56;
+  const cy = 56;
+  const rOuter = 46;
+  const rInner = 30;
+  let angle = -Math.PI / 2;
+  const slices = [];
+
+  order.forEach((wx) => {
+    const pct = percents[wx] || 0;
+    if (pct <= 0) return;
+    const sweep = (pct / 100) * Math.PI * 2;
+    const end = angle + sweep;
+    slices.push(
+      `<path d="${donutSlice(cx, cy, rOuter, rInner, angle, end)}" fill="${WX_CHART_COLORS[wx]}" data-wuxing="${wx}"/>`
+    );
+    angle = end;
+  });
+
+  const dominant = order.slice().sort((a, b) => (percents[b] || 0) - (percents[a] || 0))[0];
+  const legend = order
+    .map(
+      (wx) => `
+    <div class="wx-donut-legend-item">
+      <span class="wx-donut-dot" style="background:${WX_CHART_COLORS[wx]}"></span>
+      <span class="wx-donut-name">${wx}</span>
+      <span class="wx-donut-pct">${percents[wx]}%</span>
+    </div>`
+    )
+    .join('');
+
+  return `
+    <div class="wx-donut-wrap">
+      <div class="wx-donut-ring">
+        <svg viewBox="0 0 112 112" class="wx-donut-svg" aria-hidden="true">
+          <circle cx="${cx}" cy="${cy}" r="${rOuter}" fill="none" stroke="rgba(93,109,126,0.08)" stroke-width="${rOuter - rInner}"/>
+          ${slices.join('')}
+        </svg>
+        <div class="wx-donut-center" data-wuxing="${wxAttr(dominant)}">
+          <span class="wx-donut-center-wx">${dominant}</span>
+          <span class="wx-donut-center-label">主能量</span>
+        </div>
+      </div>
+      <div class="wx-donut-legend">${legend}</div>
+    </div>`;
 }
 
 function renderPaipan(userBazi) {
@@ -429,16 +547,15 @@ function renderPaipan(userBazi) {
     'paipan-grid',
     chart
       .map((col) => {
-        const zhiGan = Paipan.getZhiMainGan(col.zhi);
-        const zhiGanWx = Bazi.getWuxingGan(zhiGan);
         const isDay = col.ganShishen === '日主';
         return `
-      <div class="paipan-compact-col">
-        <span class="paipan-compact-label">${col.label.replace('柱', '')}</span>
-        <div class="paipan-compact-block">
-          <span class="paipan-compact-gz" data-wuxing="${wxAttr(col.ganWx)}">${gzCharHtml(col.gan, col.ganWx)}</span>
-          <span class="paipan-compact-gz" data-wuxing="${wxAttr(col.zhiWx)}">${gzCharHtml(col.zhi, col.zhiWx)}</span>
-          ${shishenTagHtml(isDay ? '日主' : col.zhiShishen, isDay ? col.ganWx : zhiGanWx, isDay)}
+      <div class="paipan-card-col${isDay ? ' is-day-pillar' : ''}">
+        <span class="paipan-card-label">${col.label.replace('柱', '')}</span>
+        <div class="paipan-card-body">
+          ${ganShishenTopHtml(col.ganShishen, isDay)}
+          ${gzColoredHtml(col.gan, 'paipan-card-gan')}
+          ${gzColoredHtml(col.zhi, 'paipan-card-zhi')}
+          <div class="paipan-card-ss">${shishenPillHtml(col.zhiShishen)}</div>
         </div>
       </div>`;
       })
@@ -446,20 +563,7 @@ function renderPaipan(userBazi) {
   );
 
   const { percents } = Paipan.calcWuxingPercent(userBazi);
-  const order = ['木', '火', '土', '金', '水'];
-  setHtml(
-    'wuxing-bars',
-    order
-      .map(
-        (wx) => `
-      <div class="wx-bar-row">
-        <span class="wx-bar-label">${wx}</span>
-        <div class="wx-bar-track"><div class="wx-bar-fill" data-wuxing="${wx}" style="width:${percents[wx]}%"></div></div>
-        <span class="wx-bar-pct">${percents[wx]}%</span>
-      </div>`
-      )
-      .join('')
-  );
+  setHtml('wuxing-bars', renderWuxingDonut(percents));
 }
 
 function renderResultPage(fortune, userBazi, refDate) {
